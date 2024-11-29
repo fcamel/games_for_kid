@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Addition Quiz with Sound Reset</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            margin: 50px;
+        }
+        #question {
+            font-size: 2em;
+            margin: 20px 0;
+        }
+        .options {
+            margin: 20px 0;
+        }
+        button {
+            padding: 10px 20px;
+            font-size: 1em;
+            cursor: pointer;
+            margin: 5px;
+        }
+        #feedback {
+            font-size: 1.5em;
+            margin-top: 20px;
+        }
+        #scoreboard {
+            margin-top: 30px;
+            font-size: 1.2em;
+        }
+    </style>
+</head>
+<body>
+    <div id="question">Click "New Question" to start!</div>
+    <div class="options" id="options"></div>
+    <button onclick="generateQuestion()">New Question</button>
+    <div id="feedback"></div>
+
+    <!-- Scoreboard -->
+    <div id="scoreboard">
+        <p>Correct Answers: <span id="correct-count">0</span></p>
+        <p>Wrong Answers: <span id="wrong-count">0</span></p>
+    </div>
+
+    <!-- Sound Effects -->
+    <audio id="correct-sound" src="./correct-winner-sting-tomas-herudek-1-00-05.mp3"></audio>
+    <audio id="wrong-sound" src="./computer-error-meme-jam-fx-1-00-02.mp3"></audio>
+
+    <script>
+        let correctAnswer;
+        let currentOptions = [];
+        let correctCount = 0; // Counter for correct answers
+        let wrongCount = 0;   // Counter for wrong answers
+        let questionAnswered = false; // Tracks if the current question is already answered
+
+        function getRandomDigit() {
+            return Math.floor(Math.random() * 9) + 1; // Generate a number between 1 and 9
+        }
+
+        function generateQuestion() {
+            const num1 = getRandomDigit();
+            const num2 = getRandomDigit();
+            
+            // Only addition
+            correctAnswer = num1 + num2;
+            
+            // Display the question
+            document.getElementById('question').textContent = `${num1} + ${num2}`;
+            
+            // Generate options
+            const optionsDiv = document.getElementById('options');
+            optionsDiv.innerHTML = ''; // Clear previous options
+            currentOptions = generateAnswers(correctAnswer);
+            questionAnswered = false; // Reset questionAnswered status
+
+            currentOptions.forEach((answer, index) => {
+                const button = document.createElement('button');
+                button.textContent = answer;
+                button.onclick = () => checkAnswer(answer, button);
+                optionsDiv.appendChild(button);
+            });
+            
+            // Clear feedback
+            document.getElementById('feedback').textContent = '';
+        }
+
+        function generateAnswers(correct) {
+            const answers = new Set();
+            answers.add(correct); // Ensure correct answer is included
+            
+            while (answers.size < 3) {
+                const wrongAnswer = correct + (Math.floor(Math.random() * 11) - 5); // Random offset
+                if (wrongAnswer !== correct) {
+                    answers.add(wrongAnswer);
+                }
+            }
+            
+            return Array.from(answers).sort(() => Math.random() - 0.5); // Shuffle the answers
+        }
+
+        function checkAnswer(selected) {
+            if (questionAnswered) return; // Prevent multiple submissions for the same question
+            questionAnswered = true;
+
+            const feedback = document.getElementById('feedback');
+            const correctSound = document.getElementById('correct-sound');
+            const wrongSound = document.getElementById('wrong-sound');
+
+            // Stop any currently playing audio
+            correctSound.pause();
+            correctSound.currentTime = 0;
+            wrongSound.pause();
+            wrongSound.currentTime = 0;
+
+            // Disable all buttons after answering
+            const buttons = document.querySelectorAll('.options button');
+            buttons.forEach(btn => btn.disabled = true);
+
+            if (selected === correctAnswer) {
+                feedback.textContent = 'Correct! 🎉';
+                feedback.style.color = 'green';
+                correctSound.play(); // Play the correct sound
+                correctCount++; // Increment correct answer count
+            } else {
+                feedback.textContent = 'Wrong! ❌';
+                feedback.style.color = 'red';
+                wrongSound.play(); // Play the wrong sound
+                wrongCount++; // Increment wrong answer count
+            }
+
+            // Update the scoreboard
+            updateScoreboard();
+        }
+
+        function updateScoreboard() {
+            document.getElementById('correct-count').textContent = correctCount;
+            document.getElementById('wrong-count').textContent = wrongCount;
+        }
+
+        document.addEventListener('keydown', (event) => {
+            const key = event.key;
+            if (key === ' ') {
+                // Spacebar for the next question
+                generateQuestion();
+            } else if (['1', '2', '3'].includes(key)) {
+                // Select answer with keys 1, 2, 3
+                const optionIndex = parseInt(key, 10) - 1;
+                if (currentOptions[optionIndex] !== undefined) {
+                    checkAnswer(currentOptions[optionIndex]);
+                }
+            }
+        });
+    </script>
+</body>
+</html>

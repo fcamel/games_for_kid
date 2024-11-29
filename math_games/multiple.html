@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Animated Rectangle Transport</title>
+    <style>
+        body {
+            transform: scale(2); /* Enlarge everything to 200% */
+            transform-origin: top left; /* Set scaling origin to top-left */
+            width: fit-content;
+
+            font-family: Arial, sans-serif;
+            text-align: center;
+        }
+        #rectangle-container {
+            position: relative;
+            margin: 20px;
+            width: fit-content;
+            height: 450px;
+            border: 0;
+        }
+        .rectangle {
+            position: absolute;
+            width: 50px;
+            height: 50px;
+            transition: all 1s ease-in-out;
+        }
+        .rectangle img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            border: 2px solid #2E7D32;
+        }
+        button {
+            font-size: 16px;
+            margin: 0;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <select id="x-value" onchange="drawRectangles()">
+        <script>
+            for (let i = 1; i <= 10; i++) {
+                document.write(`<option value="${i}" ${i === 2 ? "selected" : ""}>${i}</option>`);
+            }
+        </script>
+    </select>
+    x
+    <select id="y-value" onchange="drawRectangles()">
+        <script>
+            for (let i = 1; i <= 10; i++) {
+                document.write(`<option value="${i}" ${i === 3 ? "selected" : ""}>${i}</option>`);
+            }
+        </script>
+    </select>
+
+    <button onclick="transportRectangles()">Transport</button>
+
+    <div id="rectangle-container"></div>
+
+    <script>
+        let currentX, currentY;
+
+        // Function to draw the initial grid of rectangles
+        function drawRectangles() {
+            currentX = parseInt(document.getElementById('x-value').value);
+            currentY = parseInt(document.getElementById('y-value').value);
+            const container = document.getElementById('rectangle-container');
+            
+            container.innerHTML = ''; // Clear previous rectangles
+
+            for (let row = 0; row < currentX; row++) {
+                for (let col = 0; col < currentY; col++) {
+                    const rect = document.createElement('div');
+                    rect.classList.add('rectangle');
+                    rect.style.transform = `translate(${col * 60}px, ${row * 60}px)`;
+                    rect.dataset.row = row;
+                    rect.dataset.col = col;
+
+                    // Add an image inside each rectangle
+                    const img = document.createElement('img');
+                    img.src = "./three-eyes.webp"; // Placeholder image URL
+                    img.alt = `Rectangle (${row}, ${col})`;
+                    rect.appendChild(img);
+
+                    container.appendChild(rect);
+                }
+            }
+        }
+
+        // Function to transport rectangles to transposed positions
+        function transportRectangles() {
+            const rectangles = document.querySelectorAll('.rectangle');
+            const newPositions = []; // Array to store new positions
+
+            // Calculate new positions
+            rectangles.forEach(rect => {
+                const oldRow = parseInt(rect.dataset.row);
+                const oldCol = parseInt(rect.dataset.col);
+                const newRow = oldCol;
+                const newCol = oldRow;
+                newPositions.push({ rect, newRow, newCol });
+            });
+
+            // Update coordinates and animate transition
+            newPositions.forEach(({ rect, newRow, newCol }) => {
+                rect.style.transform = `translate(${newCol * 60}px, ${newRow * 60}px)`;
+                rect.dataset.row = newRow;
+                rect.dataset.col = newCol;
+            });
+
+            // Swap currentX and currentY
+            [currentX, currentY] = [currentY, currentX];
+
+            // Update dropdown values to reflect the new dimensions
+            document.getElementById('x-value').value = currentX;
+            document.getElementById('y-value').value = currentY;
+        }
+
+        // Draw the default grid on page load
+        window.onload = drawRectangles;
+    </script>
+</body>
+</html>
