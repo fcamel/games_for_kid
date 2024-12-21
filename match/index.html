@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="styles.css">
+    <title>Memory Match Game</title>
+</head>
+<body>
+    <h1>Memory Match Game</h1>
+    <div class="controls">
+        <div class="control-group">
+            <label for="rows">Rows (N):</label>
+            <select id="rows">
+                <option value="2" selected>2</option>
+                <option value="3">3</option>
+                <option value="4">4</option>
+                <option value="5">5</option>
+            </select>
+        </div>
+        <div class="control-group">
+            <label for="cols">Columns (M):</label>
+            <select id="cols">
+                <option value="2">2</option>
+                <option value="3" selected>3</option>
+                <option value="4">4</option>
+                <option value="5">5</option>
+            </select>
+        </div>
+        <button id="start-game">Start New Game</button>
+    </div>
+    <div id="timer" class="timer">Time: 00:00</div>
+    <div id="game-board"></div>
+    <audio id="correct-sound" src="sound/correct.mp3"></audio>
+    <audio id="error-sound" src="sound/error.mp3"></audio>
+    <script src="script.js"></script>
+</body>
+</html>
