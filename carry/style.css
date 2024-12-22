@@ -1,0 +1,172 @@
+body {
+    font-family: Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+    background-color: #f0f0f0;
+}
+
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    min-height: 800px;
+    padding: 0;
+}
+
+.main-content {
+    display: flex;
+    gap: 100px;
+    align-items: flex-start;
+}
+
+.left-panel {
+    width: 300px;
+    padding-top: 100px;
+}
+
+h1 {
+    text-align: center;
+    color: #333;
+    margin-bottom: 40px;
+    font-size: 28px;
+    line-height: 1.3;
+}
+
+.input-section {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    text-align: center;
+    margin: 20px 0;
+}
+
+select, button {
+    padding: 12px 20px;
+    font-size: 18px;
+    border-radius: 6px;
+    border: 2px solid #333;
+    margin: 0 5px;
+}
+
+button {
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+button:hover {
+    background-color: #45a049;
+}
+
+.stacks-container {
+    display: flex;
+    justify-content: center;
+    gap: 50px;
+    margin-top: 400px;
+    position: relative;
+}
+
+:root {
+    --rectangle-height: 40px;
+    --rectangle-margin: 5px;
+    --stack-height: 500px;
+    --rect-width: 80%;
+    --rect-height: 40px;
+}
+
+.stack {
+    width: 200px;
+    height: var(--stack-height);
+    position: relative;
+    border: 2px solid #333;
+    background-color: white;
+}
+
+.stack-label {
+    position: absolute;
+    top: -30px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 20px;
+    font-weight: bold;
+}
+
+.stack-content {
+    position: relative;
+    height: 100%;
+    width: 100%;
+}
+
+.rectangle {
+    width: var(--rect-width);
+    height: var(--rect-height);
+    background-color: #6495ED;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-weight: bold;
+    position: absolute;
+    left: calc((100% - var(--rect-width)) / 2);
+}
+
+.rectangle.temp {
+    background-color: #FFA500;
+}
+
+.big-rectangle {
+    background-color: #ff346a;
+    height: var(--rect-height);
+    font-size: 1.5em;
+}
+
+.stack-column {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+}
+
+.stack-count {
+    font-size: 48px;
+    font-weight: bold;
+    color: #333;
+}
+
+.speed-control {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 20px 0;
+}
+
+.speed-control label {
+    font-size: 16px;
+    color: #333;
+}
+
+.speed-control input[type="range"] {
+    width: 100%;
+}
+
+.speed-control span {
+    font-size: 14px;
+    color: #666;
+    text-align: center;
+}
+
+@keyframes dropAnimation {
+    from {
+        transform: translateY(-400px);
+    }
+    to {
+        transform: translateY(var(--final-position));
+    }
+}
+
+@keyframes circleAnimation {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.1); }
+    100% { transform: scale(1); }
+}

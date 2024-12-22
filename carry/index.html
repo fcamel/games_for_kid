@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Carry Concept Demo</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <div class="main-content">
+            <div class="left-panel">
+                <h1>Carry Concept Demo</h1>
+
+                <div class="input-section">
+                    <select id="digitInput">
+                        <option value="">Select a digit</option>
+                        <option value="1">1</option>
+                        <option value="2">2</option>
+                        <option value="3">3</option>
+                        <option value="4">4</option>
+                        <option value="5">5</option>
+                        <option value="6">6</option>
+                        <option value="7">7</option>
+                        <option value="8">8</option>
+                        <option value="9">9</option>
+                    </select>
+                    <button onclick="addRectangles()">Add</button>
+                    
+                    <div class="speed-control">
+                        <label for="speedInput">Animation Speed:</label>
+                        <input type="range" id="speedInput" min="0.3" max="2" step="0.1" value="1">
+                        <span id="speedValue">1x</span>
+                    </div>
+
+                    <div class="speed-control">
+                        <label for="carryDurationInput">Carry Duration:</label>
+                        <input type="range" id="carryDurationInput" min="1" max="5" step="0.1" value="1">
+                        <span id="carryDurationValue">1x</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="stacks-container">
+                <div class="stack-column">
+                    <div class="stack" id="s1">
+                        <div class="stack-content"></div>
+                    </div>
+                    <div class="stack-count" id="s1-count">0</div>
+                </div>
+                <div class="stack-column">
+                    <div class="stack" id="s0">
+                        <div class="stack-content"></div>
+                    </div>
+                    <div class="stack-count" id="s0-count">0</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html>
