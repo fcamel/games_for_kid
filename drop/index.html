@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Math Drop Game</title>
+    <style>
+        body {
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            font-family: Arial, sans-serif;
+            background-color: #f0f0f0;
+        }
+        #gameCanvas {
+            border: 2px solid #333;
+            margin-top: 20px;
+            background-color: white;
+        }
+        #score {
+            font-size: 24px;
+            margin-top: 10px;
+        }
+        #input {
+            font-size: 20px;
+            margin-top: 10px;
+            padding: 5px;
+            width: 100px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div id="score">Score: 0</div>
+    <canvas id="gameCanvas" width="400" height="800"></canvas>
+    <input type="number" id="input" placeholder="Answer" autocomplete="off">
+    <div style="margin-top: 10px">
+        <label for="speed">Speed:</label>
+        <input type="range" id="speed" min="0.1" max="3" step="0.1" value="0.1">
+        <span id="speedValue">0.1x</span>
+    </div>
+    <div style="margin-top: 10px">
+        <label for="specialFreq">Special Rectangle Frequency (%):</label>
+        <input type="range" id="specialFreq" min="0" max="50" step="5" value="15">
+        <span id="specialFreqValue">15%</span>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const input = document.getElementById('input');
+        const scoreElement = document.getElementById('score');
+        const speedSlider = document.getElementById('speed');
+        const speedValue = document.getElementById('speedValue');
+        const specialFreqSlider = document.getElementById('specialFreq');
+        const specialFreqValue = document.getElementById('specialFreqValue');
+
+        let score = 0;
+        let gameOver = false;
+        let rectangles = [];
+        let lastSpawnTime = 0;
+        let baseSpeed = 0.1;
+        let specialFrequency = 0.15;
+        const spawnInterval = 3000;
+
+        speedSlider.addEventListener('input', function() {
+            baseSpeed = parseFloat(this.value);
+            speedValue.textContent = baseSpeed + 'x';
+        });
+
+        specialFreqSlider.addEventListener('input', function() {
+            specialFrequency = parseInt(this.value) / 100;
+            specialFreqValue.textContent = this.value + '%';
+        });
+
+        class Rectangle {
+            constructor() {
+                this.width = 100;
+                this.height = 50;
+                this.x = Math.random() * (canvas.width - this.width);
+                this.y = -this.height;
+                this.speed = 1;
+                this.isSpecial = Math.random() < specialFrequency;
+                this.generateExpression();
+            }
+
+            generateExpression() {
+                if (this.isSpecial) {
+                    // Generate harder expressions for special rectangles
+                    const operations = ['*', '+', '-'];
+                    const op = operations[Math.floor(Math.random() * operations.length)];
+                    const x = Math.floor(Math.random() * 12) + 1;
+                    const y = Math.floor(Math.random() * 12) + 1;
+                    
+                    if (op === '*') {
+                        this.answer = x * y;
+                        this.expression = `(${x} × ${y})`;
+                    } else if (op === '+') {
+                        const z = Math.floor(Math.random() * 10);
+                        this.answer = x + y + z;
+                        this.expression = `(${x} + ${y} + ${z})`;
+                    } else {
+                        this.answer = x - y;
+                        this.expression = `(${x} - ${y})`;
+                    }
+                } else {
+                    const x = Math.floor(Math.random() * 10);
+                    const y = Math.floor(Math.random() * 10);
+                    this.answer = x + y;
+                    this.expression = `(${x} + ${y})`;
+                }
+            }
+
+            draw() {
+                ctx.fillStyle = this.isSpecial ? '#FF6B6B' : '#4CAF50';
+                ctx.fillRect(this.x, this.y, this.width, this.height);
+                ctx.strokeStyle = '#333';
+                ctx.strokeRect(this.x, this.y, this.width, this.height);
+                
+                ctx.fillStyle = 'white';
+                ctx.font = '20px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText(this.expression, this.x + this.width/2, this.y + this.height/2 + 7);
+            }
+
+            update() {
+                this.y += this.speed * baseSpeed;
+                if (this.y + this.height >= canvas.height) {
+                    gameOver = true;
+                }
+            }
+        }
+
+        function gameLoop() {
+            if (gameOver) {
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                ctx.fillStyle = 'white';
+                ctx.font = '48px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText('Game Over!', canvas.width/2, canvas.height/2);
+                ctx.font = '24px Arial';
+                ctx.fillText(`Final Score: ${score}`, canvas.width/2, canvas.height/2 + 40);
+                return;
+            }
+
+            const currentTime = Date.now();
+            if (currentTime - lastSpawnTime > spawnInterval) {
+                rectangles.push(new Rectangle());
+                lastSpawnTime = currentTime;
+            }
+
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            rectangles = rectangles.filter(rect => {
+                rect.update();
+                rect.draw();
+                return true;
+            });
+
+            requestAnimationFrame(gameLoop);
+        }
+
+        input.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                const answer = parseInt(input.value);
+                input.value = '';
+                
+                // Find the lowest matching rectangle
+                let lowestY = -1;
+                let lowestIndex = -1;
+                
+                for (let i = 0; i < rectangles.length; i++) {
+                    if (rectangles[i].answer === answer && rectangles[i].y > lowestY) {
+                        lowestY = rectangles[i].y;
+                        lowestIndex = i;
+                    }
+                }
+                
+                if (lowestIndex !== -1) {
+                    const removedRect = rectangles[lowestIndex];
+                    rectangles.splice(lowestIndex, 1);
+                    score += 10;
+
+                    // If it's a special rectangle, remove nearby rectangles
+                    if (removedRect.isSpecial) {
+                        score += 20; // Extra points for special rectangle
+                        const clearRadius = 100; // Clear rectangles within 100 pixels
+                        rectangles = rectangles.filter(rect => {
+                            const distance = Math.sqrt(
+                                Math.pow(rect.x - removedRect.x, 2) + 
+                                Math.pow(rect.y - removedRect.y, 2)
+                            );
+                            if (distance <= clearRadius) {
+                                score += 5; // Bonus points for each nearby rectangle cleared
+                                return false;
+                            }
+                            return true;
+                        });
+                    }
+                    
+                    scoreElement.textContent = `Score: ${score}`;
+                }
+            }
+        });
+
+        gameLoop();
+    </script>
+</body>
+</html>
