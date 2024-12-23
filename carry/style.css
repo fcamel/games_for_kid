@@ -39,6 +39,19 @@ h1 {
     margin: 20px 0;
 }
 
+.direct-input {
+    margin: 20px 0;
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+.direct-input input {
+    width: 100px;
+    padding: 5px;
+    font-size: 16px;
+}
+
 select, button {
     padding: 12px 20px;
     font-size: 18px;
@@ -76,11 +89,11 @@ button:hover {
 }
 
 .stack {
+    position: relative;
     width: 200px;
     height: var(--stack-height);
-    position: relative;
-    border: 2px solid #333;
-    background-color: white;
+    border: 2px solid #ccc;
+    margin: 0 10px;
 }
 
 .stack-label {
@@ -94,8 +107,15 @@ button:hover {
 
 .stack-content {
     position: relative;
-    height: 100%;
     width: 100%;
+    height: 100%;
+}
+
+.stack-count {
+    text-align: center;
+    margin-top: 10px;
+    font-size: 36px;
+    font-weight: bold;
 }
 
 .rectangle {
@@ -121,17 +141,16 @@ button:hover {
     font-size: 1.5em;
 }
 
+.hundred-rectangle {
+    background-color: #00b07e;  /* A different shade for hundreds */
+    font-size: 1.2em;  /* Slightly larger text for hundreds */
+}
+
 .stack-column {
     display: flex;
     flex-direction: column;
     align-items: center;
     gap: 20px;
-}
-
-.stack-count {
-    font-size: 48px;
-    font-weight: bold;
-    color: #333;
 }
 
 .speed-control {
