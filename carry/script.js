@@ -246,6 +246,7 @@ async function performCarry() {
     // Execute all remaining rectangle operations simultaneously
     await Promise.all(remainingOperations.map(op => op()));
 
+    updateCountDisplays();
     resetAnimation();
 }
 
