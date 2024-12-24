@@ -10,44 +10,86 @@
     <div class="container">
         <div class="main-content">
             <div class="left-panel">
-                <div id="message" style="color: red; font-weight: bold; text-align: center;"></div>
-                <div id="message" style="color: red; font-weight: bold; text-align: center;"></div>
                 <h1>Carry Concept Demo</h1>
 
-                <div class="input-section">
-                    <select id="digitInput">
-                        <option value="">Select a digit</option>
-                        <option value="1">1</option>
-                        <option value="2">2</option>
-                        <option value="3">3</option>
-                        <option value="4">4</option>
-                        <option value="5">5</option>
-                        <option value="6">6</option>
-                        <option value="7">7</option>
-                        <option value="8">8</option>
-                        <option value="9">9</option>
-                    </select>
-                    <button onclick="handleSubmit()">Add</button>
-                    
-                    <div class="direct-input">
-                        <input type="number" id="directInput" min="0" max="999" placeholder="Enter 0-999">
-                        <button onclick="handleDirectInput()">Set</button>
+                <div class="controls-container">
+                    <!-- System Parameters -->
+                    <div class="control-group">
+                        <h3>System Parameters</h3>
+                        <div class="control-row">
+                            <div class="control-item">
+                                <label for="stackCountInput">Number of Stacks:</label>
+                                <select id="stackCountInput" onchange="updateStackCount()">
+                                    <option value="3">3 stacks</option>
+                                    <option value="4">4 stacks</option>
+                                    <option value="5">5 stacks</option>
+                                    <option value="6">6 stacks</option>
+                                </select>
+                            </div>
+                            <div class="control-item">
+                                <label for="baseInput">Base Number:</label>
+                                <select id="baseInput" onchange="updateBase()">
+                                    <option value="2">Base 2 (Binary)</option>
+                                    <option value="3">Base 3</option>
+                                    <option value="4">Base 4</option>
+                                    <option value="5">Base 5</option>
+                                    <option value="6">Base 6</option>
+                                    <option value="7">Base 7</option>
+                                    <option value="8">Base 8 (Octal)</option>
+                                    <option value="9">Base 9</option>
+                                    <option value="10" selected>Base 10 (Decimal)</option>
+                                </select>
+                            </div>
+                        </div>
                     </div>
 
-                    <div class="speed-control">
-                        <label for="speedInput">Animation Speed:</label>
-                        <input type="range" id="speedInput" min="0.3" max="2" step="0.1" value="1">
-                        <span id="speedValue">1x</span>
+                    <!-- Stack Operations -->
+                    <div class="control-group">
+                        <h3>Stack Operations</h3>
+                        <div class="control-row">
+                            <div class="control-item">
+                                <label for="digitInput">Add Single Digit:</label>
+                                <select id="digitInput">
+                                    <option value="1">1</option>
+                                    <option value="2">2</option>
+                                    <option value="3">3</option>
+                                    <option value="4">4</option>
+                                    <option value="5">5</option>
+                                    <option value="6">6</option>
+                                    <option value="7">7</option>
+                                    <option value="8">8</option>
+                                    <option value="9">9</option>
+                                </select>
+                                <button onclick="handleSubmit()">Add</button>
+                            </div>
+                            <div class="control-item">
+                                <label for="directInput">Set Direct Value:</label>
+                                <input type="number" id="directInput" min="1" placeholder="Enter value">
+                                <button onclick="handleDirectInput()">Set</button>
+                            </div>
+                        </div>
                     </div>
 
-                    <div class="speed-control">
-                        <label for="carryDurationInput">Carry Duration:</label>
-                        <input type="range" id="carryDurationInput" min="1" max="5" step="0.1" value="1">
-                        <span id="carryDurationValue">1x</span>
+                    <!-- Animation Controls -->
+                    <div class="control-group">
+                        <h3>Animation Controls</h3>
+                        <div class="control-row">
+                            <div class="control-item">
+                                <label for="speedInput">Animation Speed:</label>
+                                <input type="range" id="speedInput" min="0.1" max="2" step="0.1" value="1">
+                                <span id="speedValue">1x</span>
+                            </div>
+                            <div class="control-item">
+                                <label for="carryDurationInput">Carry Duration:</label>
+                                <input type="range" id="carryDurationInput" min="0.5" max="3" step="0.5" value="1">
+                                <span id="carryDurationValue">1x</span>
+                            </div>
+                        </div>
                     </div>
                 </div>
-            </div>
 
+                <div id="message"></div>
+            </div>
             <div class="stacks-container">
                 <div class="stack" id="s2">
                     <div class="stack-content"></div>

@@ -3,24 +3,29 @@ body {
     margin: 0;
     padding: 0;
     background-color: #f0f0f0;
+    text-align: center;
 }
 
 .container {
-    max-width: 1200px;
     margin: 0 auto;
-    min-height: 800px;
-    padding: 0;
+    display: inline-block;
+    padding: 20px;
+    text-align: left;
 }
 
 .main-content {
     display: flex;
-    gap: 100px;
+    gap: 30px;
     align-items: flex-start;
+    white-space: nowrap;
 }
 
 .left-panel {
-    width: 300px;
-    padding-top: 100px;
+    flex: 0 0 400px;
+    background-color: white;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 h1 {
@@ -47,7 +52,7 @@ h1 {
 }
 
 .direct-input input {
-    width: 100px;
+    width: 200px;
     padding: 5px;
     font-size: 16px;
 }
@@ -74,10 +79,17 @@ button:hover {
 
 .stacks-container {
     display: flex;
+    gap: 20px;
     justify-content: center;
-    gap: 50px;
-    margin-top: 400px;
+    padding: 20px;
+    background-color: white;
+    border-radius: 8px;
+    min-height: 800px;
     position: relative;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    align-items: flex-end;
+    padding-bottom: 40px;
+    margin-top: 40px;
 }
 
 :root {
@@ -94,6 +106,7 @@ button:hover {
     height: var(--stack-height);
     border: 2px solid #ccc;
     margin: 0 10px;
+    bottom: 0;
 }
 
 .stack-label {
@@ -106,16 +119,46 @@ button:hover {
 }
 
 .stack-content {
-    position: relative;
+    position: absolute;
     width: 100%;
     height: 100%;
+    bottom: 0;
 }
 
 .stack-count {
+    position: absolute;
+    width: 100%;
     text-align: center;
-    margin-top: 10px;
     font-size: 36px;
     font-weight: bold;
+    bottom: -45px;
+}
+
+.stack-count-input {
+    margin-bottom: 20px;
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+.stack-count-input input {
+    width: 200px;
+    padding: 5px;
+    font-size: 16px;
+}
+
+.stack-count-input button {
+    padding: 5px 10px;
+    font-size: 16px;
+    cursor: pointer;
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    border-radius: 4px;
+}
+
+.stack-count-input button:hover {
+    background-color: #45a049;
 }
 
 .rectangle {
@@ -146,6 +189,21 @@ button:hover {
     font-size: 1.2em;  /* Slightly larger text for hundreds */
 }
 
+.thousand-rectangle {
+    background-color: #9370db;  /* Purple for thousands */
+    font-size: 1.1em;
+}
+
+.ten-thousand-rectangle {
+    background-color: #20b2aa;  /* Light sea green for ten thousands */
+    font-size: 1em;
+}
+
+.hundred-thousand-rectangle {
+    background-color: #daa520;  /* Goldenrod for hundred thousands */
+    font-size: 0.9em;
+}
+
 .stack-column {
     display: flex;
     flex-direction: column;
@@ -173,6 +231,84 @@ button:hover {
     font-size: 14px;
     color: #666;
     text-align: center;
+}
+
+.controls-container {
+    margin-bottom: 30px;
+    width: 100%;
+}
+
+.control-group {
+    background-color: #e0e0e0;
+    border-radius: 8px;
+    padding: 20px;
+    margin-bottom: 20px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.control-group h3 {
+    margin: 0 0 15px 0;
+    color: #333;
+    font-size: 1.2em;
+    border-bottom: 2px solid #ccc;
+    padding-bottom: 8px;
+}
+
+.control-row {
+    display: flex;
+    gap: 20px;
+    flex-wrap: wrap;
+}
+
+.control-item {
+    flex: 1;
+    min-width: 200px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.control-item label {
+    font-weight: bold;
+    color: #444;
+}
+
+.control-item select,
+.control-item input[type="number"] {
+    padding: 8px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    font-size: 16px;
+    width: 100%;
+    background-color: white;
+}
+
+.control-item input[type="range"] {
+    width: 100%;
+}
+
+.control-item button {
+    padding: 8px 15px;
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 16px;
+    margin-top: 5px;
+    transition: background-color 0.3s;
+}
+
+.control-item button:hover {
+    background-color: #45a049;
+}
+
+#message {
+    margin: 20px 0;
+    padding: 10px;
+    border-radius: 4px;
+    text-align: center;
+    font-weight: bold;
 }
 
 @keyframes dropAnimation {
