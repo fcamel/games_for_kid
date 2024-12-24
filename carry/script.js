@@ -245,6 +245,8 @@ async function performCarry() {
 
     // Execute all remaining rectangle operations simultaneously
     await Promise.all(remainingOperations.map(op => op()));
+
+    resetAnimation();
 }
 
 function handleSubmit() {
@@ -298,17 +300,22 @@ function handleSubmit() {
     stackCounts[onesStack.id] += count;
     updateCountDisplays();
 
-    if (stackCounts[onesStack.id] >= CARRY_THRESHOLD) {
-        setTimeout(() => performCarry(), BASE_CARRY_DELAY * speedMultiplier + count * dropDelay);
-    }
-
     digitInput.value = '1';
 
-    setTimeout(() => {
-        isAnimating = false;
-        messageDiv.innerText = 'Animation complete! You can submit again.';
-        messageDiv.style.color = 'green';
-    }, (BASE_CARRY_DELAY * speedMultiplier + count * dropDelay) + (willCarry ? 500 * speedMultiplier * getCarryDurationMultiplier() : 0));
+    if (stackCounts[onesStack.id] >= CARRY_THRESHOLD) {
+        setTimeout(() => performCarry(), BASE_CARRY_DELAY * speedMultiplier + count * dropDelay);
+    } else {
+        setTimeout(() => {
+            resetAnimation();
+        }, (BASE_CARRY_DELAY * speedMultiplier + count * dropDelay) + (willCarry ? 500 * speedMultiplier * getCarryDurationMultiplier() : 0));
+    }
+}
+
+function resetAnimation() {
+    isAnimating = false;
+    const messageDiv = document.getElementById('message');
+    messageDiv.innerText = 'Animation complete! You can submit again.';
+    messageDiv.style.color = 'green';
 }
 
 function handleDirectInput() {
