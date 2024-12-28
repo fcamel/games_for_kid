@@ -198,7 +198,7 @@
         let baseSpeed = 0.1;
         let specialFrequency = 0.15;
         let gameMode = null;
-        const spawnInterval = 3000;
+        const spawnInterval = 1000;
         let playerNumber = 0;
         let ws;
         let clientId = Date.now().toString();
@@ -206,7 +206,7 @@
         function startGame(mode) {
             gameMode = mode;
             modeSelect.style.display = 'none';
-            
+
             if (mode === 'single') {
                 statusElement.textContent = 'Single Player Mode';
                 gameLoop();
@@ -219,35 +219,36 @@
         // Connect to WebSocket server
         function connectWebSocket() {
             if (gameMode !== 'multi') return;
-            
+
             ws = new WebSocket(`ws://${window.location.hostname}:8000/ws/${clientId}`);
-            
+
             ws.onmessage = function(event) {
                 const data = JSON.parse(event.data);
-                
+
                 switch(data.type) {
                     case "waiting":
                         statusElement.textContent = data.message;
                         break;
-                    
+
                     case "game_start":
                         playerNumber = data.player_number;
                         statusElement.textContent = `You are Player ${playerNumber}`;
                         gameLoop();
                         break;
-                    
+
                     case "add_rectangles":
                         // Add new rectangles when opponent clears theirs
                         for (let i = 0; i < data.count; i++) {
                             rectangles.push(new Rectangle(true));
                         }
+                        rectangles.sort((a, b) => a.y - b.y);
                         break;
-                    
+
                     case "opponent_game_over":
                         statusElement.textContent = "You Win! Your opponent's game is over!";
                         gameOver = true;
                         break;
-                    
+
                     case "opponent_disconnected":
                         statusElement.textContent = "Your opponent disconnected. Game Over!";
                         gameOver = true;
@@ -287,28 +288,23 @@
             }
 
             generateExpression() {
-                if (this.isSpecial) {
-                    const operations = ['*', '+', '-'];
-                    const op = operations[Math.floor(Math.random() * operations.length)];
-                    const x = Math.floor(Math.random() * 12) + 1;
-                    const y = Math.floor(Math.random() * 12) + 1;
-                    
-                    if (op === '*') {
-                        this.answer = x * y;
-                        this.expression = `(${x} × ${y})`;
-                    } else if (op === '+') {
-                        const z = Math.floor(Math.random() * 10);
-                        this.answer = x + y + z;
-                        this.expression = `(${x} + ${y} + ${z})`;
-                    } else {
-                        this.answer = x - y;
-                        this.expression = `(${x} - ${y})`;
-                    }
-                } else {
-                    const x = Math.floor(Math.random() * 10);
-                    const y = Math.floor(Math.random() * 10);
+                const operations = ['+', '+', '-'];  // Higher chance of addition
+                const op = operations[Math.floor(Math.random() * operations.length)];
+                const x = Math.floor(Math.random() * 9) + 1;
+                const y = Math.floor(Math.random() * 9) + 1;
+
+                if (op === '+') {
                     this.answer = x + y;
-                    this.expression = `(${x} + ${y})`;
+                    this.expression = `${x} + ${y}`;
+                } else {
+                    this.answer = x - y;
+                    this.expression = `${x} - ${y}`;
+                }
+
+                if (this.isSpecial) {
+                    const z = Math.floor(Math.random() * 9) + 1;
+                    this.answer += z;
+                    this.expression += ` + ${z}`;
                 }
             }
 
@@ -319,7 +315,7 @@
                 ctx.strokeStyle = this.isAttack ? '#0066CC' : '#333';
                 ctx.lineWidth = this.isAttack ? 3 : 1;
                 ctx.strokeRect(this.x, this.y, this.width, this.height);
-                
+
                 ctx.fillStyle = 'white';
                 ctx.font = '20px Arial';
                 ctx.textAlign = 'center';
@@ -356,11 +352,12 @@
             const currentTime = Date.now();
             if (currentTime - lastSpawnTime > spawnInterval) {
                 rectangles.push(new Rectangle(false));
+                rectangles.sort((a, b) => a.y - b.y);
                 lastSpawnTime = currentTime;
             }
 
             ctx.clearRect(0, 0, canvas.width, canvas.height);
-            
+
             rectangles = rectangles.filter(rect => {
                 rect.update();
                 rect.draw();
@@ -418,17 +415,17 @@
             if (e.key === 'Enter' && !gameOver) {
                 const answer = parseInt(input.textContent);
                 input.textContent = '0';
-                
-                let lowestY = -1;
+
+                let lowestY = -9999;
                 let lowestIndex = -1;
-                
+
                 for (let i = 0; i < rectangles.length; i++) {
                     if (rectangles[i].answer === answer && rectangles[i].y > lowestY) {
                         lowestY = rectangles[i].y;
                         lowestIndex = i;
                     }
                 }
-                
+
                 if (lowestIndex !== -1) {
                     const removedRect = rectangles[lowestIndex];
                     rectangles.splice(lowestIndex, 1);
@@ -440,7 +437,7 @@
                         const clearRadius = 100;
                         rectangles = rectangles.filter(rect => {
                             const distance = Math.sqrt(
-                                Math.pow(rect.x - removedRect.x, 2) + 
+                                Math.pow(rect.x - removedRect.x, 2) +
                                 Math.pow(rect.y - removedRect.y, 2)
                             );
                             if (distance <= clearRadius) {
@@ -451,14 +448,14 @@
                             return true;
                         });
                     }
-                    
+
                     if (gameMode === 'multi' && ws && ws.readyState === WebSocket.OPEN) {
                         ws.send(JSON.stringify({
                             type: "rectangle_cleared",
                             combo_count: comboCount
                         }));
                     }
-                    
+
                     scoreElement.textContent = `Score: ${score}`;
                 }
             }
