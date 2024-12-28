@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ellipse Light Ray Reflection</title>
+    <style>
+        canvas {
+            border: 1px solid #ccc;
+            margin: 20px;
+        }
+        body {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            font-family: Arial, sans-serif;
+        }
+        .instructions {
+            margin: 20px;
+            padding: 10px;
+            background-color: #f0f0f0;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="instructions">
+        Click anywhere on the ellipse to see light ray reflection from one focus to another
+    </div>
+    <canvas id="canvas" width="800" height="600"></canvas>
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+
+        // Ellipse parameters
+        const centerX = canvas.width / 2;
+        const centerY = canvas.height / 2;
+        const a = 200; // semi-major axis
+        const b = 150; // semi-minor axis
+        const c = Math.sqrt(a * a - b * b); // focal distance from center
+        
+        // Focus points
+        const focus1 = { x: centerX - c, y: centerY };
+        const focus2 = { x: centerX + c, y: centerY };
+
+        function drawEllipse() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // Draw the ellipse
+            ctx.beginPath();
+            ctx.ellipse(centerX, centerY, a, b, 0, 0, 2 * Math.PI);
+            ctx.strokeStyle = '#000';
+            ctx.stroke();
+            
+            // Draw focus points
+            ctx.fillStyle = 'red';
+            ctx.beginPath();
+            ctx.arc(focus1.x, focus1.y, 4, 0, 2 * Math.PI);
+            ctx.arc(focus2.x, focus2.y, 4, 0, 2 * Math.PI);
+            ctx.fill();
+        }
+
+        function distance(p1, p2) {
+            return Math.sqrt((p2.x - p1.x) ** 2 + (p2.y - p1.y) ** 2);
+        }
+
+        function findNearestPointOnEllipse(x, y) {
+            // Simple approximation by checking multiple points
+            let minDist = Infinity;
+            let nearestPoint = null;
+            
+            for (let angle = 0; angle < 2 * Math.PI; angle += 0.01) {
+                const px = centerX + a * Math.cos(angle);
+                const py = centerY + b * Math.sin(angle);
+                const dist = distance({x, y}, {x: px, y: py});
+                
+                if (dist < minDist) {
+                    minDist = dist;
+                    nearestPoint = {x: px, y: py};
+                }
+            }
+            
+            return nearestPoint;
+        }
+
+        function lerp(start, end, t) {
+            return {
+                x: start.x + (end.x - start.x) * t,
+                y: start.y + (end.y - start.y) * t
+            };
+        }
+
+        function animateReflection(point) {
+            const duration = 1000; // Animation duration in milliseconds
+            const startTime = performance.now();
+            
+            function animate(currentTime) {
+                const elapsed = currentTime - startTime;
+                const progress = Math.min(elapsed / duration, 1);
+                
+                // Clear and redraw the basic elements
+                drawEllipse();
+                
+                // First segment: focus1 to reflection point
+                if (progress <= 0.5) {
+                    const t = progress * 2; // Scale to [0,1] for first half
+                    const currentPoint = lerp(focus1, point, t);
+                    
+                    ctx.beginPath();
+                    ctx.moveTo(focus1.x, focus1.y);
+                    ctx.lineTo(currentPoint.x, currentPoint.y);
+                    ctx.strokeStyle = '#0066ff';
+                    ctx.stroke();
+                } else {
+                    // Draw complete first segment
+                    ctx.beginPath();
+                    ctx.moveTo(focus1.x, focus1.y);
+                    ctx.lineTo(point.x, point.y);
+                    ctx.strokeStyle = '#0066ff';
+                    ctx.stroke();
+                    
+                    // Second segment: reflection point to focus2
+                    const t = (progress - 0.5) * 2; // Scale to [0,1] for second half
+                    const currentPoint = lerp(point, focus2, t);
+                    
+                    ctx.beginPath();
+                    ctx.moveTo(point.x, point.y);
+                    ctx.lineTo(currentPoint.x, currentPoint.y);
+                    ctx.strokeStyle = '#ff6600';
+                    ctx.stroke();
+                }
+                
+                if (progress < 1) {
+                    requestAnimationFrame(animate);
+                }
+            }
+            
+            requestAnimationFrame(animate);
+        }
+
+        function drawGuideLine(mouseX, mouseY) {
+            // Clear and redraw the basic elements
+            drawEllipse();
+            
+            // Draw dotted guide line from focus1 to mouse position
+            ctx.beginPath();
+            ctx.moveTo(focus1.x, focus1.y);
+            ctx.lineTo(mouseX, mouseY);
+            ctx.setLineDash([5, 5]); // Create dotted line
+            ctx.strokeStyle = '#999';
+            ctx.stroke();
+            ctx.setLineDash([]); // Reset to solid line
+        }
+
+        canvas.addEventListener('mousemove', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            drawGuideLine(x, y);
+        });
+
+        canvas.addEventListener('click', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            
+            const point = findNearestPointOnEllipse(x, y);
+            animateReflection(point);
+        });
+
+        // Initial draw
+        drawEllipse();
+    </script>
+</body>
+</html>
