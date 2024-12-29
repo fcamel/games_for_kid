@@ -174,8 +174,8 @@
         </div>
         <div>
             <label for="specialFreq">Special Rectangle Frequency (%):</label>
-            <input type="range" id="specialFreq" min="0" max="50" step="5" value="15">
-            <span id="specialFreqValue">15%</span>
+            <input type="range" id="specialFreq" min="0" max="50" step="5" value="20">
+            <span id="specialFreqValue">20%</span>
         </div>
     </div>
 
@@ -194,14 +194,35 @@
         let score = 0;
         let gameOver = false;
         let rectangles = [];
+        let explosions = [];  // Store active explosion effects
+        let laserBeams = [];  // Store active laser beams
         let lastSpawnTime = 0;
         let baseSpeed = 0.1;
         let specialFrequency = 0.15;
         let gameMode = null;
-        const spawnInterval = 1000;
-        let playerNumber = 0;
-        let ws;
-        let clientId = Date.now().toString();
+        const spawnInterval = 3000;
+        const windowPadding = 20; // Padding from top of window
+
+        function addRectangle(isFromServer) {
+            const rect = new Rectangle(isFromServer);
+            
+            // Insert the rectangle in sorted order (by y position)
+            let insertIndex = 0;
+            while (insertIndex < rectangles.length && rectangles[insertIndex].y < rect.y) {
+                insertIndex++;
+            }
+            rectangles.splice(insertIndex, 0, rect);
+            return rect;
+        }
+
+        function getLowestRectangle() {
+            if (rectangles.length === 0) return null;
+            return rectangles[rectangles.length - 1];
+        }
+
+        function isRectangleLowest(rect) {
+            return rect === getLowestRectangle();
+        }
 
         function startGame(mode) {
             gameMode = mode;
@@ -239,9 +260,8 @@
                     case "add_rectangles":
                         // Add new rectangles when opponent clears theirs
                         for (let i = 0; i < data.count; i++) {
-                            rectangles.push(new Rectangle(true));
+                            addRectangle(true);
                         }
-                        rectangles.sort((a, b) => a.y - b.y);
                         break;
 
                     case "opponent_game_over":
@@ -275,19 +295,22 @@
         });
 
         class Rectangle {
-            constructor(isAttack = false) {
+            constructor(isFromServer = false) {
+                this.isFromServer = isFromServer;
+
                 this.width = 100;
-                this.height = 50;
+                this.height = 60;
                 this.x = Math.random() * (canvas.width - this.width);
-                this.isAttack = isAttack;
-                // Attack rectangles start from 1/3 of the canvas height
-                this.y = isAttack ? canvas.height / 3 : -this.height;
-                this.speed = 1;
-                this.isSpecial = Math.random() < specialFrequency;
-                this.generateExpression();
+                // Ensure the rectangle is fully visible at the top.
+                // When the rectangle is spawned by the server (the opponent's attack), place it at a lower position.
+                this.y = 0 + isFromServer ? canvas.height / 3 : 0;
+
+                const isSpecial = Math.random() < specialFrequency;
+                this.generateExpression(isSpecial);
+                this.answer = eval(this.expression);
             }
 
-            generateExpression() {
+            generateExpression(isSpecial) {
                 const operations = ['+', '+', '-'];  // Higher chance of addition
                 const op = operations[Math.floor(Math.random() * operations.length)];
                 const x = Math.floor(Math.random() * 9) + 1;
@@ -301,6 +324,7 @@
                     this.expression = `${x} - ${y}`;
                 }
 
+                this.isSpecial = isSpecial;
                 if (this.isSpecial) {
                     const z = Math.floor(Math.random() * 9) + 1;
                     this.answer += z;
@@ -309,36 +333,118 @@
             }
 
             draw() {
-                ctx.fillStyle = this.isSpecial ? '#FF6B6B' : '#4CAF50';
+                ctx.beginPath();
+                ctx.fillStyle = this.isSpecial ? '#ffeb3b' : '#fff';
                 ctx.fillRect(this.x, this.y, this.width, this.height);
-                // Blue border for attack rectangles
-                ctx.strokeStyle = this.isAttack ? '#0066CC' : '#333';
-                ctx.lineWidth = this.isAttack ? 3 : 1;
+                // Blue border for rectangels from the opponent
+                ctx.strokeStyle = this.isFromServer ? '#2196f3' : '#000';
+                ctx.lineWidth = this.isFromServer ? 3 : 1;
+                ctx.strokeRect(this.x, this.y, this.width, this.height);
+                
+                // Draw border with different color for lowest rectangle
+                ctx.strokeStyle = isRectangleLowest(this) ? '#ff4081' : '#000';
+                ctx.lineWidth = isRectangleLowest(this) ? 3 : 1;
                 ctx.strokeRect(this.x, this.y, this.width, this.height);
 
-                ctx.fillStyle = 'white';
+                ctx.fillStyle = '#000';
                 ctx.font = '20px Arial';
                 ctx.textAlign = 'center';
-                ctx.fillText(this.expression, this.x + this.width/2, this.y + this.height/2 + 7);
-                ctx.lineWidth = 1; // Reset line width
+                ctx.textBaseline = 'middle';
+                ctx.fillText(this.expression, this.x + this.width/2, this.y + this.height/2);
             }
 
             update() {
-                this.y += this.speed * baseSpeed;
+                this.y += baseSpeed;
                 if (this.y + this.height >= canvas.height) {
                     gameOver = true;
-                    if (ws && ws.readyState === WebSocket.OPEN) {
+                    statusElement.textContent = 'Game Over!';
+                    if (gameMode === 'multi' && ws && ws.readyState === WebSocket.OPEN) {
                         ws.send(JSON.stringify({
-                            type: "game_over"
+                            type: 'game_over'
                         }));
                     }
                 }
+                return this.y < canvas.height;  // Return false when rectangle hits bottom
+            }
+        }
+
+        class Explosion {
+            constructor(x, y) {
+                this.x = x;
+                this.y = y;
+                this.radius = 0;
+                this.maxRadius = 50;
+                this.speed = 2;
+                this.alpha = 1;
+            }
+
+            draw() {
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+                ctx.fillStyle = `rgba(255, 165, 0, ${this.alpha})`;  // Orange with fading alpha
+                ctx.fill();
+                ctx.strokeStyle = `rgba(255, 69, 0, ${this.alpha})`;  // Red-orange border
+                ctx.lineWidth = 2;
+                ctx.stroke();
+            }
+
+            update() {
+                this.radius += this.speed;
+                this.alpha = Math.max(0, 1 - this.radius / this.maxRadius);
+                return this.radius <= this.maxRadius;  // Return true if explosion should continue
+            }
+        }
+
+        class LaserBeam {
+            constructor(y, height) {
+                this.y = y;
+                this.height = height;
+                this.alpha = 1;
+                this.fadeSpeed = 0.02;
+            }
+
+            draw() {
+                // Draw the main laser beam
+                ctx.fillStyle = `rgba(255, 0, 0, ${this.alpha * 0.3})`;
+                ctx.fillRect(0, this.y, canvas.width, this.height);
+                
+                // Draw the center line of the laser
+                ctx.beginPath();
+                ctx.strokeStyle = `rgba(255, 255, 255, ${this.alpha})`;
+                ctx.lineWidth = 2;
+                ctx.moveTo(0, this.y);
+                ctx.lineTo(canvas.width, this.y);
+                ctx.stroke();
+                
+                // Draw glow effect
+                ctx.fillStyle = `rgba(255, 0, 0, ${this.alpha * 0.5})`;
+                ctx.fillRect(0, this.y, canvas.width, this.height);
+            }
+
+            update() {
+                this.alpha -= this.fadeSpeed;
+                return this.alpha > 0;  // Return true if laser should continue
             }
         }
 
         function gameLoop() {
+            // Always clear the canvas at the start of each frame
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
             if (gameOver) {
-                ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+                // Draw rectangles and explosions first
+                rectangles.forEach(rect => rect.draw());
+                explosions = explosions.filter(explosion => {
+                    explosion.draw();
+                    return explosion.update();
+                });
+                laserBeams = laserBeams.filter(laser => {
+                    laser.draw();
+                    return laser.update();
+                });
+
+                // Then draw game over overlay
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
                 ctx.fillRect(0, 0, canvas.width, canvas.height);
                 ctx.fillStyle = 'white';
                 ctx.font = '48px Arial';
@@ -351,17 +457,29 @@
 
             const currentTime = Date.now();
             if (currentTime - lastSpawnTime > spawnInterval) {
-                rectangles.push(new Rectangle(false));
-                rectangles.sort((a, b) => a.y - b.y);
+                addRectangle(false);
                 lastSpawnTime = currentTime;
             }
 
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-
+            // Update and draw all game objects
             rectangles = rectangles.filter(rect => {
-                rect.update();
-                rect.draw();
-                return true;
+                const keepRect = rect.update();
+                if (keepRect) {
+                    rect.draw();
+                }
+                return keepRect;
+            });
+
+            // Update and draw explosions
+            explosions = explosions.filter(explosion => {
+                explosion.draw();
+                return explosion.update();
+            });
+
+            // Update and draw laser beams
+            laserBeams = laserBeams.filter(laser => {
+                laser.draw();
+                return laser.update();
             });
 
             requestAnimationFrame(gameLoop);
@@ -412,53 +530,54 @@
         });
 
         function handleAnswer(e) {
-            if (e.key === 'Enter' && !gameOver) {
-                const answer = parseInt(input.textContent);
-                input.textContent = '0';
+            const lowestRect = getLowestRectangle();
+            if (!lowestRect) return;
 
-                let lowestY = -9999;
-                let lowestIndex = -1;
-
-                for (let i = 0; i < rectangles.length; i++) {
-                    if (rectangles[i].answer === answer && rectangles[i].y > lowestY) {
-                        lowestY = rectangles[i].y;
-                        lowestIndex = i;
-                    }
+            const answer = parseInt(input.textContent);
+            if (e.key === 'Enter' && answer === lowestRect.answer) {
+                // Store rectangles to be removed
+                const rectsToRemove = [lowestRect];
+                
+                // For special rectangles, find all rectangles below the target line
+                if (lowestRect.isSpecial) {
+                    const targetY = lowestRect.y - lowestRect.height;
+                    rectangles.forEach(rect => {
+                        if (rect !== lowestRect && rect.y + rect.height > targetY) {
+                            rectsToRemove.push(rect);
+                        }
+                    });
+                    
+                    // Create laser beam effect at the target line
+                    laserBeams.push(new LaserBeam(
+                        targetY,
+                        lowestRect.height * 2
+                    ));
                 }
-
-                if (lowestIndex !== -1) {
-                    const removedRect = rectangles[lowestIndex];
-                    rectangles.splice(lowestIndex, 1);
-                    score += 10;
-
-                    let comboCount = 1;
-                    if (removedRect.isSpecial) {
-                        score += 20;
-                        const clearRadius = 100;
-                        rectangles = rectangles.filter(rect => {
-                            const distance = Math.sqrt(
-                                Math.pow(rect.x - removedRect.x, 2) +
-                                Math.pow(rect.y - removedRect.y, 2)
-                            );
-                            if (distance <= clearRadius) {
-                                score += 5;
-                                comboCount++;
-                                return false;
-                            }
-                            return true;
-                        });
-                    }
-
-                    if (gameMode === 'multi' && ws && ws.readyState === WebSocket.OPEN) {
-                        ws.send(JSON.stringify({
-                            type: "rectangle_cleared",
-                            combo_count: comboCount
-                        }));
-                    }
-
-                    scoreElement.textContent = `Score: ${score}`;
+                
+                // Remove all marked rectangles
+                rectangles = rectangles.filter(rect => !rectsToRemove.includes(rect));
+                
+                // Create explosions for all removed rectangles
+                rectsToRemove.forEach(rect => {
+                    explosions.push(new Explosion(
+                        rect.x + rect.width / 2,
+                        rect.y + rect.height / 2
+                    ));
+                });
+                
+                // Update score
+                score += lowestRect.isSpecial ? 2 : 1;
+                score += rectsToRemove.length - 1; // Additional point for each extra rectangle removed
+                scoreElement.textContent = `Score: ${score}`;
+                
+                if (gameMode === 'multi') {
+                    ws.send(JSON.stringify({
+                        type: 'score',
+                        score: score
+                    }));
                 }
             }
+            input.textContent = '0';
         }
 
         // Prevent double-firing of events on touch devices
