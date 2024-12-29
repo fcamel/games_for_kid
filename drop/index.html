@@ -148,6 +148,7 @@
     <div class="game-container">
         <canvas id="gameCanvas" width="400" height="800"></canvas>
         <div class="numpad-container">
+            <div class="numpad-display" id="input">0</div>
             <div class="numpad">
                 <button onclick="appendNumber(7)" ontouchstart="appendNumber(7)">7</button>
                 <button onclick="appendNumber(8)" ontouchstart="appendNumber(8)">8</button>
@@ -163,7 +164,6 @@
                 <button onclick="clearInput()" ontouchstart="clearInput()">C</button>
                 <button onclick="submitAnswer()" ontouchstart="submitAnswer()" class="span-3">Enter ⏎</button>
             </div>
-            <div class="numpad-display" id="input">0</div>
         </div>
     </div>
     <div class="controls">
@@ -174,8 +174,8 @@
         </div>
         <div>
             <label for="specialFreq">Special Rectangle Frequency (%):</label>
-            <input type="range" id="specialFreq" min="0" max="50" step="5" value="20">
-            <span id="specialFreqValue">20%</span>
+            <input type="range" id="specialFreq" min="0" max="50" step="5" value="30">
+            <span id="specialFreqValue">30%</span>
         </div>
     </div>
 
@@ -205,7 +205,7 @@
 
         function addRectangle(isFromServer) {
             const rect = new Rectangle(isFromServer);
-            
+
             // Insert the rectangle in sorted order (by y position)
             let insertIndex = 0;
             while (insertIndex < rectangles.length && rectangles[insertIndex].y < rect.y) {
@@ -227,14 +227,19 @@
         function startGame(mode) {
             gameMode = mode;
             modeSelect.style.display = 'none';
+            gameOver = false;
+            score = 0;
+            rectangles = [];
+            explosions = [];
+            laserBeams = [];
+            lastSpawnTime = 0;
+            scoreElement.textContent = 'Score: 0';
+            statusElement.textContent = gameMode === 'multi' ? 'Connecting...' : 'Playing';
 
-            if (mode === 'single') {
-                statusElement.textContent = 'Single Player Mode';
-                gameLoop();
-            } else {
-                statusElement.textContent = 'Connecting to server...';
+            if (gameMode === 'multi') {
                 connectWebSocket();
             }
+            requestAnimationFrame(gameLoop);
         }
 
         // Connect to WebSocket server
@@ -340,7 +345,7 @@
                 ctx.strokeStyle = this.isFromServer ? '#2196f3' : '#000';
                 ctx.lineWidth = this.isFromServer ? 3 : 1;
                 ctx.strokeRect(this.x, this.y, this.width, this.height);
-                
+
                 // Draw border with different color for lowest rectangle
                 ctx.strokeStyle = isRectangleLowest(this) ? '#ff4081' : '#000';
                 ctx.lineWidth = isRectangleLowest(this) ? 3 : 1;
@@ -407,7 +412,7 @@
                 // Draw the main laser beam
                 ctx.fillStyle = `rgba(255, 0, 0, ${this.alpha * 0.3})`;
                 ctx.fillRect(0, this.y, canvas.width, this.height);
-                
+
                 // Draw the center line of the laser
                 ctx.beginPath();
                 ctx.strokeStyle = `rgba(255, 255, 255, ${this.alpha})`;
@@ -415,7 +420,7 @@
                 ctx.moveTo(0, this.y);
                 ctx.lineTo(canvas.width, this.y);
                 ctx.stroke();
-                
+
                 // Draw glow effect
                 ctx.fillStyle = `rgba(255, 0, 0, ${this.alpha * 0.5})`;
                 ctx.fillRect(0, this.y, canvas.width, this.height);
@@ -485,6 +490,13 @@
             requestAnimationFrame(gameLoop);
         }
 
+        // Add canvas click handler to restart game
+        canvas.addEventListener('click', function() {
+            if (gameOver) {
+                modeSelect.style.display = 'flex';  // Show mode selection screen
+            }
+        });
+
         // Add number pad functions
         function appendNumber(num) {
             if (!gameOver) {
@@ -537,7 +549,7 @@
             if (e.key === 'Enter' && answer === lowestRect.answer) {
                 // Store rectangles to be removed
                 const rectsToRemove = [lowestRect];
-                
+
                 // For special rectangles, find all rectangles below the target line
                 if (lowestRect.isSpecial) {
                     const targetY = lowestRect.y - lowestRect.height;
@@ -546,17 +558,17 @@
                             rectsToRemove.push(rect);
                         }
                     });
-                    
+
                     // Create laser beam effect at the target line
                     laserBeams.push(new LaserBeam(
                         targetY,
                         lowestRect.height * 2
                     ));
                 }
-                
+
                 // Remove all marked rectangles
                 rectangles = rectangles.filter(rect => !rectsToRemove.includes(rect));
-                
+
                 // Create explosions for all removed rectangles
                 rectsToRemove.forEach(rect => {
                     explosions.push(new Explosion(
@@ -564,12 +576,12 @@
                         rect.y + rect.height / 2
                     ));
                 });
-                
+
                 // Update score
                 score += lowestRect.isSpecial ? 2 : 1;
                 score += rectsToRemove.length - 1; // Additional point for each extra rectangle removed
                 scoreElement.textContent = `Score: ${score}`;
-                
+
                 if (gameMode === 'multi') {
                     ws.send(JSON.stringify({
                         type: 'score',
