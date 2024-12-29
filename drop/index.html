@@ -19,7 +19,7 @@
         }
         #gameCanvas {
             border: 2px solid #333;
-            background-color: white;
+            background-color: black;
         }
         #score, #status {
             font-size: 24px;
@@ -190,12 +190,14 @@
         const specialFreqSlider = document.getElementById('specialFreq');
         const specialFreqValue = document.getElementById('specialFreqValue');
         const modeSelect = document.getElementById('modeSelect');
+        const targetRectBorder = 5;
 
         let score = 0;
         let gameOver = false;
         let rectangles = [];
         let explosions = [];  // Store active explosion effects
         let laserBeams = [];  // Store active laser beams
+        let firingLasers = [];  // Store active firing lasers
         let lastSpawnTime = 0;
         let baseSpeed = 0.1;
         let specialFrequency = 0.15;
@@ -232,6 +234,7 @@
             rectangles = [];
             explosions = [];
             laserBeams = [];
+            firingLasers = [];
             lastSpawnTime = 0;
             scoreElement.textContent = 'Score: 0';
             statusElement.textContent = gameMode === 'multi' ? 'Connecting...' : 'Playing';
@@ -339,7 +342,7 @@
 
             draw() {
                 ctx.beginPath();
-                ctx.fillStyle = this.isSpecial ? '#ffeb3b' : '#fff';
+                ctx.fillStyle = this.isSpecial ? '#dd0' : '#ccc';
                 ctx.fillRect(this.x, this.y, this.width, this.height);
                 // Blue border for rectangels from the opponent
                 ctx.strokeStyle = this.isFromServer ? '#2196f3' : '#000';
@@ -347,12 +350,12 @@
                 ctx.strokeRect(this.x, this.y, this.width, this.height);
 
                 // Draw border with different color for lowest rectangle
-                ctx.strokeStyle = isRectangleLowest(this) ? '#ff4081' : '#000';
-                ctx.lineWidth = isRectangleLowest(this) ? 3 : 1;
+                ctx.strokeStyle = isRectangleLowest(this) ? '#c33' : '#000';
+                ctx.lineWidth = isRectangleLowest(this) ? targetRectBorder : 1;
                 ctx.strokeRect(this.x, this.y, this.width, this.height);
 
                 ctx.fillStyle = '#000';
-                ctx.font = '20px Arial';
+                ctx.font = '24px Arial';
                 ctx.textAlign = 'center';
                 ctx.textBaseline = 'middle';
                 ctx.fillText(this.expression, this.x + this.width/2, this.y + this.height/2);
@@ -432,18 +435,147 @@
             }
         }
 
+        class FiringLaser {
+            constructor(targetRect, isCorrectAnswer) {
+                this.targetRect = targetRect;
+                this.isCorrectAnswer = isCorrectAnswer;
+                // Target position (bottom center of rectangle)
+                this.targetX = targetRect.x + targetRect.width / 2;
+                this.targetY = targetRect.y + targetRect.height + targetRectBorder;  // Bottom of rectangle
+                this.progress = 0;  // 0 to 1
+                this.duration = 20;  // frames to reach target
+                this.reachedTarget = false;
+                this.hasTriggeredEffect = false;
+                this.width = 4;  // width of laser beam
+
+                // For bouncing effect
+                this.isBouncing = false;
+                this.bounceX = 0;
+                this.bounceY = 0;
+                this.bounceProgress = 0;
+                this.bounceDuration = 20;  // frames for bounce animation
+
+                // Calculate bounce endpoint (back down at 45 degrees)
+                const angle = Math.PI/4;  // 45 degrees
+                if (this.targetX < canvas.width/2) {
+                    // Bounce to the right and down
+                    const dx = canvas.height - this.targetY;  // Distance to bottom
+                    const bounceDistance = dx / Math.sin(angle);  // Total bounce path length
+                    this.bounceX = this.targetX + bounceDistance * Math.cos(angle);
+                    this.bounceY = canvas.height;
+                } else {
+                    // Bounce to the left and down
+                    const dx = canvas.height - this.targetY;  // Distance to bottom
+                    const bounceDistance = dx / Math.sin(angle);  // Total bounce path length
+                    this.bounceX = this.targetX - bounceDistance * Math.cos(angle);
+                    this.bounceY = canvas.height;
+                }
+            }
+
+            draw() {
+                const startY = canvas.height;
+
+                if (!this.isBouncing) {
+                    // Rising laser phase
+                    const currentY = startY - (startY - this.targetY) * this.progress;
+
+                    // Draw main laser beam
+                    ctx.beginPath();
+                    ctx.fillStyle = 'rgba(255, 0, 0, 0.5)';
+                    ctx.fillRect(this.targetX - this.width/2, currentY, this.width, startY - currentY);
+
+                    // Draw core of laser beam
+                    ctx.beginPath();
+                    ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+                    ctx.fillRect(this.targetX - this.width/4, currentY, this.width/2, startY - currentY);
+
+                    // Draw glow effect at tip
+                    const gradient = ctx.createRadialGradient(
+                        this.targetX, currentY, 0,
+                        this.targetX, currentY, 20
+                    );
+                    gradient.addColorStop(0, 'rgba(255, 0, 0, 0.3)');
+                    gradient.addColorStop(1, 'rgba(255, 0, 0, 0)');
+                    ctx.fillStyle = gradient;
+                    ctx.beginPath();
+                    ctx.arc(this.targetX, currentY, 20, 0, Math.PI * 2);
+                    ctx.fill();
+                } else {
+                    // Bouncing phase
+                    const startX = this.targetX;
+                    const startY = this.targetY;
+                    const currentX = startX + (this.bounceX - startX) * this.bounceProgress;
+                    const currentY = startY + (this.bounceY - startY) * this.bounceProgress;
+
+                    // Draw bouncing laser
+                    ctx.beginPath();
+                    ctx.strokeStyle = 'rgba(255, 0, 0, 0.5)';
+                    ctx.lineWidth = this.width;
+                    ctx.moveTo(startX, startY);
+                    ctx.lineTo(currentX, currentY);
+                    ctx.stroke();
+
+                    // Draw core
+                    ctx.beginPath();
+                    ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
+                    ctx.lineWidth = this.width/2;
+                    ctx.moveTo(startX, startY);
+                    ctx.lineTo(currentX, currentY);
+                    ctx.stroke();
+
+                    // Draw glow at tip
+                    const gradient = ctx.createRadialGradient(
+                        currentX, currentY, 0,
+                        currentX, currentY, 20
+                    );
+                    gradient.addColorStop(0, 'rgba(255, 0, 0, 0.3)');
+                    gradient.addColorStop(1, 'rgba(255, 0, 0, 0)');
+                    ctx.fillStyle = gradient;
+                    ctx.beginPath();
+                    ctx.arc(currentX, currentY, 20, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+            }
+
+            update() {
+                if (!this.isBouncing) {
+                    // Rising phase
+                    this.progress += 1/this.duration;
+                    if (this.progress >= 1) {
+                        if (!this.isCorrectAnswer) {
+                            this.isBouncing = true;
+                            return true;
+                        }
+                        this.reachedTarget = true;
+                        return false;  // Remove laser immediately for correct answer
+                    }
+                } else {
+                    // Bouncing phase
+                    this.bounceProgress += 1/this.bounceDuration;
+                    if (this.bounceProgress >= 1) {
+                        return false;
+                    }
+                }
+                return true;
+            }
+        }
+
         function gameLoop() {
             // Always clear the canvas at the start of each frame
             ctx.clearRect(0, 0, canvas.width, canvas.height);
 
             if (gameOver) {
-                // Draw rectangles and explosions first
+                // Draw rectangles and effects
                 rectangles.forEach(rect => rect.draw());
                 explosions = explosions.filter(explosion => {
                     explosion.draw();
                     return explosion.update();
                 });
                 laserBeams = laserBeams.filter(laser => {
+                    laser.draw();
+                    return laser.update();
+                });
+                firingLasers = firingLasers.filter(laser => {
                     laser.draw();
                     return laser.update();
                 });
@@ -475,13 +607,19 @@
                 return keepRect;
             });
 
+            // Update and draw firing lasers
+            firingLasers = firingLasers.filter(laser => {
+                laser.draw();
+                return laser.update();
+            });
+
             // Update and draw explosions
             explosions = explosions.filter(explosion => {
                 explosion.draw();
                 return explosion.update();
             });
 
-            // Update and draw laser beams
+            // Update and draw horizontal laser beams
             laserBeams = laserBeams.filter(laser => {
                 laser.draw();
                 return laser.update();
@@ -546,47 +684,63 @@
             if (!lowestRect) return;
 
             const answer = parseInt(input.textContent);
-            if (e.key === 'Enter' && answer === lowestRect.answer) {
-                // Store rectangles to be removed
-                const rectsToRemove = [lowestRect];
+            if (e.key === 'Enter') {
+                const isCorrect = answer === lowestRect.answer;
 
-                // For special rectangles, find all rectangles below the target line
-                if (lowestRect.isSpecial) {
-                    const targetY = lowestRect.y - lowestRect.height;
-                    rectangles.forEach(rect => {
-                        if (rect !== lowestRect && rect.y + rect.height > targetY) {
-                            rectsToRemove.push(rect);
+                // Create a firing laser targeting the lowest rectangle
+                const laser = new FiringLaser(lowestRect, isCorrect);
+                firingLasers.push(laser);
+
+                if (isCorrect) {
+                    // Store rectangles to be removed but don't remove them yet
+                    const rectsToRemove = [lowestRect];
+
+                    // For special rectangles, find all rectangles below the target line
+                    if (lowestRect.isSpecial) {
+                        const targetY = lowestRect.y - lowestRect.height;
+                        rectangles.forEach(rect => {
+                            if (rect !== lowestRect && rect.y + rect.height > targetY) {
+                                rectsToRemove.push(rect);
+                            }
+                        });
+                    }
+
+                    // Create an interval to check for laser hit
+                    const laserCheckInterval = setInterval(() => {
+                        if (laser.reachedTarget && !laser.hasTriggeredEffect) {
+                            laser.hasTriggeredEffect = true;
+                            clearInterval(laserCheckInterval);
+
+                            // Remove rectangles
+                            rectangles = rectangles.filter(rect => !rectsToRemove.includes(rect));
+
+                            // Create laser beam for special rectangle
+                            if (lowestRect.isSpecial) {
+                                const targetY = lowestRect.y - lowestRect.height;
+                                laserBeams.push(new LaserBeam(targetY, lowestRect.height * 2));
+                            }
+
+                            // Create explosions for all removed rectangles
+                            rectsToRemove.forEach(rect => {
+                                explosions.push(new Explosion(
+                                    rect.x + rect.width / 2,
+                                    rect.y + rect.height / 2
+                                ));
+                            });
+
+                            // Update score
+                            score += lowestRect.isSpecial ? 2 : 1;
+                            score += rectsToRemove.length - 1;
+                            scoreElement.textContent = `Score: ${score}`;
+
+                            if (gameMode === 'multi') {
+                                ws.send(JSON.stringify({
+                                    type: 'score',
+                                    score: score
+                                }));
+                            }
                         }
-                    });
-
-                    // Create laser beam effect at the target line
-                    laserBeams.push(new LaserBeam(
-                        targetY,
-                        lowestRect.height * 2
-                    ));
-                }
-
-                // Remove all marked rectangles
-                rectangles = rectangles.filter(rect => !rectsToRemove.includes(rect));
-
-                // Create explosions for all removed rectangles
-                rectsToRemove.forEach(rect => {
-                    explosions.push(new Explosion(
-                        rect.x + rect.width / 2,
-                        rect.y + rect.height / 2
-                    ));
-                });
-
-                // Update score
-                score += lowestRect.isSpecial ? 2 : 1;
-                score += rectsToRemove.length - 1; // Additional point for each extra rectangle removed
-                scoreElement.textContent = `Score: ${score}`;
-
-                if (gameMode === 'multi') {
-                    ws.send(JSON.stringify({
-                        type: 'score',
-                        score: score
-                    }));
+                    }, 16);
                 }
             }
             input.textContent = '0';
