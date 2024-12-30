@@ -165,31 +165,43 @@
         let questionPositions = [];
         let currentQuestionIndex = 0;
 
+        const patterns = [
+            // Length 2
+            "01",
+            // Length 3
+            "001","010", "011",
+            "012",
+            // Length 4
+            "0001", "0010",
+            "0011", "0110", "0111",
+            "0012", "0102", "0112", "0120", "0121", "0122",
+            "0123",
+            // Length 5
+            "00110", "00011",
+            "01210", "01201",
+            "00123", "01230", "01231", "01232",
+            "01234",
+        ];
+
         function generatePattern() {
             const numQuestions = parseInt(document.getElementById('num-questions').value);
-            
-            // 1. Randomly determine pattern length (2-5)
-            patternLength = Math.floor(Math.random() * 4) + 2;
-            
-            // 2. Randomly determine number of distinct images (At least 2)
-            const numDistinctImages = Math.floor(Math.random() * (patternLength - 1)) + 2;
-            
+
+            // 1. Randomly pick a pattern
+            const selectedPattern = patterns[Math.floor(Math.random() * patterns.length)];
+            patternLength = selectedPattern.length;
+
+            // 2. Get the number of distinct digits in the pattern
+            const distinctDigits = new Set(selectedPattern.split('')).size;
+
             // 3. Randomly select subset of images
             const shuffledImages = [...images].sort(() => Math.random() - 0.5);
-            const selectedImages = shuffledImages.slice(0, numDistinctImages);
-            
-            // 4. Generate the base pattern from the subset
-            while (true) {
-                currentPattern = [];
-                for (let i = 0; i < patternLength; i++) {
-                    const randomImage = selectedImages[Math.floor(Math.random() * selectedImages.length)];
-                    currentPattern.push(randomImage);
-                }
-                if (new Set(currentPattern).size > 1) {
-                    break;
-                }
-            }
-            
+            const selectedImages = shuffledImages.slice(0, distinctDigits);
+
+            // 4. Convert pattern to images
+            currentPattern = selectedPattern.split('').map(digit =>
+                selectedImages[parseInt(digit)]
+            );
+
             // 5. Extend pattern to 10 squares
             const basePattern = [...currentPattern];
             while (currentPattern.length < 10) {
@@ -210,12 +222,12 @@
         function displayPattern() {
             const container = document.getElementById('pattern-container');
             container.innerHTML = '';
-            
+
             // Display all squares, replacing some with question marks
             for (let i = 0; i < 10; i++) {
                 const square = document.createElement('div');
                 square.className = 'square';
-                
+
                 if (questionPositions.includes(i)) {
                     // This is a question mark square
                     square.className = 'square question-mark';
@@ -263,12 +275,12 @@
         function createColorOptions() {
             const container = document.getElementById('color-options');
             container.innerHTML = '';
-            
+
             images.forEach(imageUrl => {
                 const option = document.createElement('div');
                 option.className = 'color-option';
                 const imageNumber = parseInt(imageUrl.match(/(\d+)\.png$/)?.[1] || '0');
-                
+
                 // Create an image to test if it loads
                 const img = new Image();
                 img.onerror = () => {
@@ -278,7 +290,7 @@
                     option.style.backgroundImage = 'none';
                 };
                 img.src = imageUrl;
-                
+
                 option.style.backgroundImage = `url(${imageUrl})`;
                 option.addEventListener('click', () => checkAnswer(imageUrl));
                 container.appendChild(option);
@@ -287,20 +299,20 @@
 
         function checkAnswer(selectedImage) {
             if (!canAnswer) return;
-            
+
             const currentQuestionPos = questionPositions[currentQuestionIndex];
             const correctImage = currentPattern[currentQuestionPos];
             const messageElement = document.getElementById('message');
-            
+
             if (selectedImage === correctImage) {
                 messageElement.style.color = 'green';
                 messageElement.textContent = 'Correct!';
                 score += 10;
-                
+
                 // Move to next question or end game
                 currentQuestionIndex++;
                 displayPattern(); // Update display to show progress
-                
+
                 if (currentQuestionIndex >= questionPositions.length) {
                     // All questions are answered correctly
                     canAnswer = false;
@@ -315,7 +327,7 @@
                 messageElement.textContent = 'Wrong answer. Try again!';
                 score = Math.max(0, score - 5);
             }
-            
+
             document.getElementById('score-value').textContent = score;
         }
 
@@ -324,23 +336,23 @@
             const squares = container.getElementsByClassName('square');
             const firstSquare = squares[0];
             const lastSquare = squares[patternLength - 1];
-            
+
             // Create highlight element
             const highlight = document.createElement('div');
             highlight.className = 'pattern-highlight';
-            
+
             // Calculate position and size
             const gap = 10;
             const left = firstSquare.offsetLeft - gap;
             const top = firstSquare.offsetTop - gap;
             const width = (lastSquare.offsetLeft - firstSquare.offsetLeft) + lastSquare.offsetWidth + gap * 2;
             const height = firstSquare.offsetHeight + gap * 2;
-            
+
             highlight.style.left = left + 'px';
             highlight.style.top = top + 'px';
             highlight.style.width = width + 'px';
             highlight.style.height = height + 'px';
-            
+
             container.appendChild(highlight);
         }
 
@@ -349,7 +361,7 @@
             if (existingHighlight) {
                 existingHighlight.remove();
             }
-            
+
             generatePattern();
             displayPattern();
             createColorOptions();
