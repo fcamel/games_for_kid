@@ -24,14 +24,9 @@
             width: 150px;
             height: 150px;
             border: 2px solid #333;
-            cursor: pointer;
-            transition: transform 0.1s;
             background-size: cover;
             background-position: center;
             margin-bottom: 60px;
-        }
-        .square:hover {
-            transform: scale(1.1);
         }
         #message {
             font-size: 24px;
@@ -50,6 +45,11 @@
             margin: 10px;
             background-size: cover;
             background-position: center;
+            transition: transform 0.2s ease-in-out;
+        }
+        .color-option:hover {
+            transform: scale(1.2);
+            z-index: 1;  /* Ensure enlarged item appears above others */
         }
         #color-options {
             display: flex;
@@ -57,7 +57,7 @@
             margin: 20px;
             flex-wrap: wrap;
             justify-content: center;
-            max-width: 1200px;
+            max-width: 800px;
         }
         #next-button {
             padding: 10px 20px;
@@ -81,7 +81,7 @@
         .pattern-highlight {
             position: absolute;
             border: 3px solid #3a3;
-            border-radius: 5px;
+            border-radius: 30px;  /* Rounded corners */
             background-color: rgba(200, 200, 200, 0.2);
             transition: all 0.3s ease;
         }
@@ -112,10 +112,34 @@
             color: #333;
             background-color: #f0f0f0;
         }
+        #controls {
+            margin: 20px;
+            font-size: 24px;
+        }
+        #num-questions {
+            font-size: 24px;
+            width: 80px;
+            padding: 5px;
+            margin: 0 10px;
+        }
+        .square.current-question {
+            border: 4px solid #ff4444;
+            animation: border-pulse 1s infinite;
+        }
+        @keyframes border-pulse {
+            0% { border-color: #ff4444; }
+            50% { border-color: #ff8888; }
+            100% { border-color: #ff4444; }
+        }
     </style>
 </head>
 <body>
     <h1>Pattern Recognition Game</h1>
+    <p>The base pattern length is at most 5.</p>
+    <div id="controls">
+        Number of questions: <input type="number" id="num-questions" min="1" max="3" value="1">
+        <button onclick="startNewRound()" id="start-button">Start New Round</button>
+    </div>
     <div id="score">Score: <span id="score-value">0</span></div>
     <div id="pattern-container"></div>
     <div id="message"></div>
@@ -123,73 +147,124 @@
     <button id="next-button" style="display: none;">Next Pattern</button>
 
     <script>
-        const colors = [
+        const images = [
             'images/1.png',
             'images/2.png',
             'images/3.png',
             'images/4.png',
             'images/5.png',
-            'images/6.png'
+            'images/6.png',
+            'images/7.png',
+            'images/8.png',
         ];
 
         let currentPattern = [];
         let score = 0;
         let canAnswer = true;
-        let patternLength = 0;  // Store the pattern length globally
+        let patternLength = 0;
+        let questionPositions = [];
+        let currentQuestionIndex = 0;
 
         function generatePattern() {
-            patternLength = Math.floor(Math.random() * 6) + 1; // 1 to 6
-            currentPattern = [];
-            for (let i = 0; i < 8; i++) {
-                if (i < patternLength) {
-                    // Generate the initial pattern
-                    const randomColor = colors[Math.floor(Math.random() * colors.length)];
-                    currentPattern.push(randomColor);
-                } else {
-                    // Repeat the pattern
-                    currentPattern.push(currentPattern[i % patternLength]);
+            const numQuestions = parseInt(document.getElementById('num-questions').value);
+            
+            // 1. Randomly determine pattern length (2-5)
+            patternLength = Math.floor(Math.random() * 4) + 2;
+            
+            // 2. Randomly determine number of distinct images (At least 2)
+            const numDistinctImages = Math.floor(Math.random() * (patternLength - 1)) + 2;
+            
+            // 3. Randomly select subset of images
+            const shuffledImages = [...images].sort(() => Math.random() - 0.5);
+            const selectedImages = shuffledImages.slice(0, numDistinctImages);
+            
+            // 4. Generate the base pattern from the subset
+            while (true) {
+                currentPattern = [];
+                for (let i = 0; i < patternLength; i++) {
+                    const randomImage = selectedImages[Math.floor(Math.random() * selectedImages.length)];
+                    currentPattern.push(randomImage);
+                }
+                if (new Set(currentPattern).size > 1) {
+                    break;
                 }
             }
+            
+            // 5. Extend pattern to 10 squares
+            const basePattern = [...currentPattern];
+            while (currentPattern.length < 10) {
+                currentPattern.push(basePattern[currentPattern.length % patternLength]);
+            }
+
+            // Generate random positions for questions
+            questionPositions = [];
+            const positions = Array.from({length: 10}, (_, i) => i);
+            for (let i = 0; i < numQuestions; i++) {
+                const randomIndex = Math.floor(Math.random() * positions.length);
+                questionPositions.push(positions.splice(randomIndex, 1)[0]);
+            }
+            questionPositions.sort((a, b) => a - b); // Sort positions left to right
+            currentQuestionIndex = 0;
         }
 
         function displayPattern() {
             const container = document.getElementById('pattern-container');
             container.innerHTML = '';
             
-            // Display the first 8 squares
-            for (let i = 0; i < 8; i++) {
+            // Display all squares, replacing some with question marks
+            for (let i = 0; i < 10; i++) {
                 const square = document.createElement('div');
                 square.className = 'square';
-                const imageNumber = parseInt(currentPattern[i].match(/(\d+)\.png$/)?.[1] || '0');
                 
-                // Create an image to test if it loads
-                const img = new Image();
-                img.onerror = () => {
-                    // If image fails to load, show number instead
-                    square.classList.add('number-fallback');
-                    square.textContent = imageNumber;
-                    square.style.backgroundImage = 'none';
-                };
-                img.src = currentPattern[i];
-                
-                square.style.backgroundImage = `url(${currentPattern[i]})`;
+                if (questionPositions.includes(i)) {
+                    // This is a question mark square
+                    square.className = 'square question-mark';
+                    if (questionPositions.indexOf(i) < currentQuestionIndex) {
+                        // This question has been answered
+                        const imageNumber = parseInt(currentPattern[i].match(/(\d+)\.png$/)?.[1] || '0');
+                        const img = new Image();
+                        img.onerror = () => {
+                            square.classList.add('number-fallback');
+                            square.textContent = imageNumber;
+                            square.style.backgroundImage = 'none';
+                        };
+                        img.src = currentPattern[i];
+                        square.style.backgroundImage = `url(${currentPattern[i]})`;
+                        square.classList.add('correct-answer');
+                    } else if (questionPositions.indexOf(i) === currentQuestionIndex) {
+                        // This is the current question
+                        square.textContent = '?';
+                        square.style.fontSize = '90px';
+                        square.style.lineHeight = '150px';
+                        square.style.backgroundColor = '#ddd';
+                        square.classList.add('current-question');
+                    } else {
+                        // Future question
+                        square.textContent = '?';
+                        square.style.fontSize = '90px';
+                        square.style.lineHeight = '150px';
+                        square.style.backgroundColor = '#eee';
+                    }
+                } else {
+                    const imageNumber = parseInt(currentPattern[i].match(/(\d+)\.png$/)?.[1] || '0');
+                    const img = new Image();
+                    img.onerror = () => {
+                        square.classList.add('number-fallback');
+                        square.textContent = imageNumber;
+                        square.style.backgroundImage = 'none';
+                    };
+                    img.src = currentPattern[i];
+                    square.style.backgroundImage = `url(${currentPattern[i]})`;
+                }
                 container.appendChild(square);
             }
-
-            // Add the question mark square
-            const questionSquare = document.createElement('div');
-            questionSquare.className = 'square question-mark';
-            questionSquare.textContent = '?';
-            questionSquare.style.fontSize = '90px';
-            questionSquare.style.lineHeight = '150px';
-            container.appendChild(questionSquare);
         }
 
         function createColorOptions() {
             const container = document.getElementById('color-options');
             container.innerHTML = '';
             
-            colors.forEach(imageUrl => {
+            images.forEach(imageUrl => {
                 const option = document.createElement('div');
                 option.className = 'color-option';
                 const imageNumber = parseInt(imageUrl.match(/(\d+)\.png$/)?.[1] || '0');
@@ -208,6 +283,40 @@
                 option.addEventListener('click', () => checkAnswer(imageUrl));
                 container.appendChild(option);
             });
+        }
+
+        function checkAnswer(selectedImage) {
+            if (!canAnswer) return;
+            
+            const currentQuestionPos = questionPositions[currentQuestionIndex];
+            const correctImage = currentPattern[currentQuestionPos];
+            const messageElement = document.getElementById('message');
+            
+            if (selectedImage === correctImage) {
+                messageElement.style.color = 'green';
+                messageElement.textContent = 'Correct!';
+                score += 10;
+                
+                // Move to next question or end game
+                currentQuestionIndex++;
+                displayPattern(); // Update display to show progress
+                
+                if (currentQuestionIndex >= questionPositions.length) {
+                    // All questions are answered correctly
+                    canAnswer = false;
+                    // Small delay before showing the pattern and next button
+                    setTimeout(() => {
+                        highlightPattern();  // Show the base pattern after all questions are answered
+                        document.getElementById('next-button').style.display = 'block';
+                    }, 500);
+                }
+            } else {
+                messageElement.style.color = 'red';
+                messageElement.textContent = 'Wrong answer. Try again!';
+                score = Math.max(0, score - 5);
+            }
+            
+            document.getElementById('score-value').textContent = score;
         }
 
         function highlightPattern() {
@@ -233,54 +342,9 @@
             highlight.style.height = height + 'px';
             
             container.appendChild(highlight);
-
-            // Add pattern length text
-            const message = document.getElementById('message');
-        }
-
-        function checkAnswer(selectedImage) {
-            if (!canAnswer) return;
-            
-            const correctImage = currentPattern[8 % patternLength];
-            const messageElement = document.getElementById('message');
-            
-            if (selectedImage === correctImage) {
-                messageElement.style.color = 'green';
-                messageElement.textContent = 'Correct!';
-                score += 10;
-                canAnswer = false;
-                document.getElementById('next-button').style.display = 'block';
-                
-                // Update the question mark square
-                const questionSquare = document.querySelector('.question-mark');
-                questionSquare.textContent = ''; // Remove the question mark
-                
-                // Try to load the correct image
-                const img = new Image();
-                img.onerror = () => {
-                    // If image fails to load, show number instead
-                    const imageNumber = parseInt(correctImage.match(/(\d+)\.png$/)?.[1] || '0');
-                    questionSquare.classList.add('number-fallback');
-                    questionSquare.textContent = imageNumber;
-                    questionSquare.style.backgroundImage = 'none';
-                };
-                img.src = correctImage;
-                
-                questionSquare.style.backgroundImage = `url(${correctImage})`;
-                questionSquare.classList.add('correct-answer');
-                
-                highlightPattern();
-            } else {
-                messageElement.style.color = 'red';
-                messageElement.textContent = 'Wrong answer. Try again!';
-                score = Math.max(0, score - 5);
-            }
-            
-            document.getElementById('score-value').textContent = score;
         }
 
         function startNewRound() {
-            // Remove any existing highlight
             const existingHighlight = document.querySelector('.pattern-highlight');
             if (existingHighlight) {
                 existingHighlight.remove();
@@ -288,6 +352,7 @@
             
             generatePattern();
             displayPattern();
+            createColorOptions();
             document.getElementById('message').textContent = '';
             document.getElementById('next-button').style.display = 'none';
             canAnswer = true;
