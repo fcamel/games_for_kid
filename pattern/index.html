@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pattern Recognition Game</title>
+    <style>
+        body {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            font-family: Arial, sans-serif;
+            background-color: #f0f0f0;
+        }
+        #pattern-container {
+            display: flex;
+            gap: 10px;
+            margin: 20px;
+            position: relative;
+        }
+        .square {
+            width: 50px;
+            height: 50px;
+            border: 2px solid #333;
+            cursor: pointer;
+            transition: transform 0.1s;
+        }
+        .square:hover {
+            transform: scale(1.1);
+        }
+        #message {
+            font-size: 24px;
+            margin: 20px;
+            min-height: 30px;
+        }
+        #score {
+            font-size: 20px;
+            margin: 10px;
+        }
+        .color-option {
+            width: 50px;
+            height: 50px;
+            border: 2px solid #333;
+            cursor: pointer;
+            margin: 5px;
+        }
+        #color-options {
+            display: flex;
+            gap: 10px;
+            margin: 20px;
+        }
+        #next-button {
+            padding: 10px 20px;
+            font-size: 18px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 20px;
+        }
+        #next-button:hover {
+            background-color: #45a049;
+        }
+        .question-mark {
+            font-size: 30px;
+            line-height: 50px;
+            text-align: center;
+            background-color: #ddd;
+        }
+        .pattern-highlight {
+            position: absolute;
+            border: 3px solid #3a3;
+            border-radius: 5px;
+            background-color: rgba(200, 200, 200, 0.2);
+            transition: all 0.3s ease;
+        }
+        .square.correct-answer {
+            border: 6px solid #4CAF50;
+            animation: border-flash 1s ease-in-out;
+        }
+        @keyframes border-flash {
+            0% { border-color: #4CAF50; }
+            50% { border-color: #45a049; }
+            100% { border-color: #4CAF50; }
+        }
+    </style>
+</head>
+<body>
+    <h1>Pattern Recognition Game</h1>
+    <div id="score">Score: <span id="score-value">0</span></div>
+    <div id="pattern-container"></div>
+    <div id="message"></div>
+    <div id="color-options"></div>
+    <button id="next-button" style="display: none;">Next Pattern</button>
+
+    <script>
+        const colors = ['#ff0000', '#00ff00', '#0000ff', '#ffff00', '#ff00ff'];
+        let currentPattern = [];
+        let score = 0;
+        let canAnswer = true;
+        let patternLength = 0;  // Store the pattern length globally
+
+        function generatePattern() {
+            patternLength = Math.floor(Math.random() * 6) + 1; // 1 to 6
+            currentPattern = [];
+            for (let i = 0; i < 8; i++) {
+                if (i < patternLength) {
+                    // Generate the initial pattern
+                    const randomColor = colors[Math.floor(Math.random() * colors.length)];
+                    currentPattern.push(randomColor);
+                } else {
+                    // Repeat the pattern
+                    currentPattern.push(currentPattern[i % patternLength]);
+                }
+            }
+        }
+
+        function displayPattern() {
+            const container = document.getElementById('pattern-container');
+            container.innerHTML = '';
+            
+            // Display the first 8 squares
+            for (let i = 0; i < 8; i++) {
+                const square = document.createElement('div');
+                square.className = 'square';
+                square.style.backgroundColor = currentPattern[i];
+                container.appendChild(square);
+            }
+
+            // Add the question mark square
+            const questionSquare = document.createElement('div');
+            questionSquare.className = 'square question-mark';
+            questionSquare.textContent = '?';
+            container.appendChild(questionSquare);
+        }
+
+        function createColorOptions() {
+            const container = document.getElementById('color-options');
+            container.innerHTML = '';
+            
+            colors.forEach(color => {
+                const option = document.createElement('div');
+                option.className = 'color-option';
+                option.style.backgroundColor = color;
+                option.addEventListener('click', () => checkAnswer(color));
+                container.appendChild(option);
+            });
+        }
+
+        function highlightPattern() {
+            const container = document.getElementById('pattern-container');
+            const squares = container.getElementsByClassName('square');
+            const firstSquare = squares[0];
+            const lastSquare = squares[patternLength - 1];
+            
+            // Create highlight element
+            const highlight = document.createElement('div');
+            highlight.className = 'pattern-highlight';
+            
+            // Calculate position and size
+            const left = firstSquare.offsetLeft - 5;
+            const top = firstSquare.offsetTop - 5;
+            const width = (lastSquare.offsetLeft - firstSquare.offsetLeft) + lastSquare.offsetWidth + 5;
+            const height = firstSquare.offsetHeight + 5;
+            
+            highlight.style.left = left + 'px';
+            highlight.style.top = top + 'px';
+            highlight.style.width = width + 'px';
+            highlight.style.height = height + 'px';
+            
+            container.appendChild(highlight);
+
+            // Add pattern length text
+            const message = document.getElementById('message');
+        }
+
+        function checkAnswer(selectedColor) {
+            if (!canAnswer) return;
+            
+            // The correct answer should be the next color in the sequence
+            // Since we have 8 squares shown, the next color should be at position 8
+            // We use modulo with patternLength to wrap around to the correct position in the pattern
+            const correctColor = currentPattern[8 % patternLength];
+            const messageElement = document.getElementById('message');
+            
+            if (selectedColor === correctColor) {
+                messageElement.style.color = 'green';
+                messageElement.textContent = 'Correct! Well done!';
+                score += 10;
+                canAnswer = false;
+                document.getElementById('next-button').style.display = 'block';
+                
+                // Update the question mark square
+                const questionSquare = document.querySelector('.question-mark');
+                questionSquare.textContent = ''; // Remove the question mark
+                questionSquare.style.backgroundColor = correctColor;
+                questionSquare.classList.add('correct-answer');
+                
+                highlightPattern();
+            } else {
+                messageElement.style.color = 'red';
+                messageElement.textContent = 'Wrong answer. Try again!';
+                score = Math.max(0, score - 5);
+            }
+            
+            document.getElementById('score-value').textContent = score;
+        }
+
+        function startNewRound() {
+            // Remove any existing highlight
+            const existingHighlight = document.querySelector('.pattern-highlight');
+            if (existingHighlight) {
+                existingHighlight.remove();
+            }
+            
+            generatePattern();
+            displayPattern();
+            document.getElementById('message').textContent = '';
+            document.getElementById('next-button').style.display = 'none';
+            canAnswer = true;
+        }
+
+        // Initialize the game
+        createColorOptions();
+        document.getElementById('next-button').addEventListener('click', startNewRound);
+        startNewRound();
+    </script>
+</body>
+</html>
