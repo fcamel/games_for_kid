@@ -14,16 +14,21 @@
         }
         #pattern-container {
             display: flex;
-            gap: 10px;
+            gap: 20px;
             margin: 20px;
             position: relative;
+            flex-wrap: wrap;
+            justify-content: center;
         }
         .square {
-            width: 50px;
-            height: 50px;
+            width: 150px;
+            height: 150px;
             border: 2px solid #333;
             cursor: pointer;
             transition: transform 0.1s;
+            background-size: cover;
+            background-position: center;
+            margin-bottom: 60px;
         }
         .square:hover {
             transform: scale(1.1);
@@ -34,20 +39,25 @@
             min-height: 30px;
         }
         #score {
-            font-size: 20px;
+            font-size: 24px;
             margin: 10px;
         }
         .color-option {
-            width: 50px;
-            height: 50px;
+            width: 150px;
+            height: 150px;
             border: 2px solid #333;
             cursor: pointer;
-            margin: 5px;
+            margin: 10px;
+            background-size: cover;
+            background-position: center;
         }
         #color-options {
             display: flex;
-            gap: 10px;
+            gap: 20px;
             margin: 20px;
+            flex-wrap: wrap;
+            justify-content: center;
+            max-width: 1200px;
         }
         #next-button {
             padding: 10px 20px;
@@ -63,8 +73,8 @@
             background-color: #45a049;
         }
         .question-mark {
-            font-size: 30px;
-            line-height: 50px;
+            font-size: 90px;
+            line-height: 150px;
             text-align: center;
             background-color: #ddd;
         }
@@ -84,6 +94,24 @@
             50% { border-color: #45a049; }
             100% { border-color: #4CAF50; }
         }
+        .square.number-fallback {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 72px;
+            font-weight: bold;
+            color: #333;
+            background-color: #f0f0f0;
+        }
+        .color-option.number-fallback {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 100px;
+            font-weight: bold;
+            color: #333;
+            background-color: #f0f0f0;
+        }
     </style>
 </head>
 <body>
@@ -95,7 +123,15 @@
     <button id="next-button" style="display: none;">Next Pattern</button>
 
     <script>
-        const colors = ['#ff0000', '#00ff00', '#0000ff', '#ffff00', '#ff00ff'];
+        const colors = [
+            'images/1.png',
+            'images/2.png',
+            'images/3.png',
+            'images/4.png',
+            'images/5.png',
+            'images/6.png'
+        ];
+
         let currentPattern = [];
         let score = 0;
         let canAnswer = true;
@@ -124,7 +160,19 @@
             for (let i = 0; i < 8; i++) {
                 const square = document.createElement('div');
                 square.className = 'square';
-                square.style.backgroundColor = currentPattern[i];
+                const imageNumber = parseInt(currentPattern[i].match(/(\d+)\.png$/)?.[1] || '0');
+                
+                // Create an image to test if it loads
+                const img = new Image();
+                img.onerror = () => {
+                    // If image fails to load, show number instead
+                    square.classList.add('number-fallback');
+                    square.textContent = imageNumber;
+                    square.style.backgroundImage = 'none';
+                };
+                img.src = currentPattern[i];
+                
+                square.style.backgroundImage = `url(${currentPattern[i]})`;
                 container.appendChild(square);
             }
 
@@ -132,6 +180,8 @@
             const questionSquare = document.createElement('div');
             questionSquare.className = 'square question-mark';
             questionSquare.textContent = '?';
+            questionSquare.style.fontSize = '90px';
+            questionSquare.style.lineHeight = '150px';
             container.appendChild(questionSquare);
         }
 
@@ -139,11 +189,23 @@
             const container = document.getElementById('color-options');
             container.innerHTML = '';
             
-            colors.forEach(color => {
+            colors.forEach(imageUrl => {
                 const option = document.createElement('div');
                 option.className = 'color-option';
-                option.style.backgroundColor = color;
-                option.addEventListener('click', () => checkAnswer(color));
+                const imageNumber = parseInt(imageUrl.match(/(\d+)\.png$/)?.[1] || '0');
+                
+                // Create an image to test if it loads
+                const img = new Image();
+                img.onerror = () => {
+                    // If image fails to load, show number instead
+                    option.classList.add('number-fallback');
+                    option.textContent = imageNumber;
+                    option.style.backgroundImage = 'none';
+                };
+                img.src = imageUrl;
+                
+                option.style.backgroundImage = `url(${imageUrl})`;
+                option.addEventListener('click', () => checkAnswer(imageUrl));
                 container.appendChild(option);
             });
         }
@@ -159,10 +221,11 @@
             highlight.className = 'pattern-highlight';
             
             // Calculate position and size
-            const left = firstSquare.offsetLeft - 5;
-            const top = firstSquare.offsetTop - 5;
-            const width = (lastSquare.offsetLeft - firstSquare.offsetLeft) + lastSquare.offsetWidth + 5;
-            const height = firstSquare.offsetHeight + 5;
+            const gap = 10;
+            const left = firstSquare.offsetLeft - gap;
+            const top = firstSquare.offsetTop - gap;
+            const width = (lastSquare.offsetLeft - firstSquare.offsetLeft) + lastSquare.offsetWidth + gap * 2;
+            const height = firstSquare.offsetHeight + gap * 2;
             
             highlight.style.left = left + 'px';
             highlight.style.top = top + 'px';
@@ -175,18 +238,15 @@
             const message = document.getElementById('message');
         }
 
-        function checkAnswer(selectedColor) {
+        function checkAnswer(selectedImage) {
             if (!canAnswer) return;
             
-            // The correct answer should be the next color in the sequence
-            // Since we have 8 squares shown, the next color should be at position 8
-            // We use modulo with patternLength to wrap around to the correct position in the pattern
-            const correctColor = currentPattern[8 % patternLength];
+            const correctImage = currentPattern[8 % patternLength];
             const messageElement = document.getElementById('message');
             
-            if (selectedColor === correctColor) {
+            if (selectedImage === correctImage) {
                 messageElement.style.color = 'green';
-                messageElement.textContent = 'Correct! Well done!';
+                messageElement.textContent = 'Correct!';
                 score += 10;
                 canAnswer = false;
                 document.getElementById('next-button').style.display = 'block';
@@ -194,7 +254,19 @@
                 // Update the question mark square
                 const questionSquare = document.querySelector('.question-mark');
                 questionSquare.textContent = ''; // Remove the question mark
-                questionSquare.style.backgroundColor = correctColor;
+                
+                // Try to load the correct image
+                const img = new Image();
+                img.onerror = () => {
+                    // If image fails to load, show number instead
+                    const imageNumber = parseInt(correctImage.match(/(\d+)\.png$/)?.[1] || '0');
+                    questionSquare.classList.add('number-fallback');
+                    questionSquare.textContent = imageNumber;
+                    questionSquare.style.backgroundImage = 'none';
+                };
+                img.src = correctImage;
+                
+                questionSquare.style.backgroundImage = `url(${correctImage})`;
                 questionSquare.classList.add('correct-answer');
                 
                 highlightPattern();
