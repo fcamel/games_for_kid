@@ -236,7 +236,7 @@
     </div>
 
     <div class="history" id="history">
-        <h2>History</h2>
+        <h2>History (Round 0)</h2>
     </div>
 
     <script>
@@ -246,6 +246,7 @@
                 this.secretCode = [];
                 this.currentGuess = [];
                 this.history = [];
+                this.rounds = 0;
                 this.generateSecretCode();
             }
 
@@ -377,7 +378,15 @@
             }
         }
 
+        function updateHistoryTitle() {
+            const historyTitle = document.querySelector('.history h2');
+            historyTitle.textContent = `History (Round ${game.rounds})`;
+        }
+
         function addToHistory(guess, bulls, cows) {
+            game.rounds++;
+            updateHistoryTitle();
+
             const historyItem = document.createElement('div');
             historyItem.className = 'history-item';
             
@@ -445,7 +454,7 @@
             updateGuessSlots();
             submitGuessButton.disabled = true;
             resultDiv.textContent = '';
-            historyDiv.innerHTML = '<h2>History</h2>';
+            historyDiv.innerHTML = '<h2>History (Round 0)</h2>';
             updateImageCandidates();
         }
 
