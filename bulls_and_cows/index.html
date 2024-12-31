@@ -1,0 +1,494 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bulls and Cows with Images</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f0f0f0;
+            display: flex;
+            gap: 20px;
+        }
+        .game-container {
+            background-color: white;
+            max-width: 1050px;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            flex: 1;
+        }
+        .controls {
+            margin-bottom: 20px;
+        }
+        select {
+            padding: 5px;
+            font-size: 16px;
+        }
+        .image-candidates {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-bottom: 20px;
+        }
+        .image-candidates img {
+            width: 240px;
+            height: 240px;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: border-color 0.3s;
+        }
+        .image-candidates img:hover {
+            border-color: #666;
+        }
+        .guess-container {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        .guess-slot {
+            width: 240px;
+            height: 240px;
+            border: 2px dashed #999;
+            border-radius: 5px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .guess-slot.empty {
+            cursor: pointer;
+        }
+        .guess-slot img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            cursor: not-allowed;
+        }
+        .guess-slot img:hover {
+            cursor: no-drop;
+            opacity: 0.8;
+        }
+        .result {
+            font-size: 18px;
+            font-weight: bold;
+            color: #333;
+        }
+        .firework {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            animation: explode 1.5s ease-out forwards;
+            pointer-events: none;
+        }
+        @keyframes explode {
+            0% {
+                width: 20px;
+                height: 20px;
+                opacity: 1;
+                box-shadow: 
+                    0 0 0 0 #ff0000,
+                    0 0 0 0 #00ff00,
+                    0 0 0 0 #0000ff,
+                    0 0 0 0 #ffff00,
+                    0 0 0 0 #ff00ff,
+                    0 0 0 0 #00ffff,
+                    0 0 0 0 #ff8800,
+                    0 0 0 0 #ff0088;
+            }
+            50% {
+                opacity: 1;
+            }
+            100% {
+                width: 0;
+                height: 0;
+                opacity: 0;
+                box-shadow: 
+                    -240px -240px 0 8px #ff0000,
+                    240px -240px 0 8px #00ff00,
+                    240px 240px 0 8px #0000ff,
+                    -240px 240px 0 8px #ffff00,
+                    0px -340px 0 8px #ff00ff,
+                    340px 0px 0 8px #00ffff,
+                    0px 340px 0 8px #ff8800,
+                    -340px 0px 0 8px #ff0088;
+            }
+        }
+        .firework:nth-child(2) { animation-delay: 0.2s; left: 30%; }
+        .firework:nth-child(3) { animation-delay: 0.4s; left: 70%; }
+        .firework:nth-child(4) { animation-delay: 0.6s; top: 30%; }
+        .firework:nth-child(5) { animation-delay: 0.8s; top: 70%; }
+        .firework:nth-child(6) { animation-delay: 0.3s; left: 40%; top: 40%; }
+        .firework:nth-child(7) { animation-delay: 0.5s; left: 60%; top: 60%; }
+        .firework:nth-child(8) { animation-delay: 0.7s; left: 40%; top: 60%; }
+        .firework:nth-child(9) { animation-delay: 0.9s; left: 60%; top: 40%; }
+        .firework:nth-child(10) { animation-delay: 1.0s; }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        
+        .win-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.3);
+            z-index: 999;
+            pointer-events: none;
+            animation: fadeIn 0.5s ease-out;
+        }
+        .history {
+            background-color: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            width: 540px;
+            max-height: 1200px;
+            overflow-y: scroll;
+        }
+        .history h2 {
+            margin-top: 0;
+            font-size: 24px;
+            color: #333;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .history-item {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 15px;
+            padding: 10px;
+            background-color: #f8f8f8;
+            border-radius: 8px;
+        }
+        .history-images {
+            display: flex;
+            gap: 5px;
+        }
+        .history-images img {
+            width: 100px;
+            height: 100px;
+            border: 1px solid #ddd;
+            border-radius: 3px;
+        }
+        .history-result {
+            font-size: 30px;
+            font-weight: bold;
+            color: #333;
+            margin-left: auto;
+        }
+        button {
+            padding: 8px 16px;
+            font-size: 16px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        button:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <h1>Bulls and Cows with Images</h1>
+        
+        <div class="controls">
+            <label for="numImages">Number of images to use: </label>
+            <select id="numImages">
+                <option value="3">3</option>
+                <option value="4">4</option>
+                <option value="5">5</option>
+                <option value="6">6</option>
+                <option value="7">7</option>
+                <option value="8">8</option>
+            </select>
+            <label for="numGuessSlots" style="margin-left: 20px;">Number of slots: </label>
+            <select id="numGuessSlots">
+                <option value="2" selected>2</option>
+                <option value="3">3</option>
+                <option value="4">4</option>
+            </select>
+            <button id="newGame">New Game</button>
+        </div>
+
+        <div class="image-candidates" id="imageCandidates"></div>
+
+        <div class="guess-container" id="guessContainer"></div>
+
+        <button id="submitGuess" disabled>Submit Guess</button>
+
+        <div class="result" id="result"></div>
+    </div>
+
+    <div class="history" id="history">
+        <h2>History</h2>
+    </div>
+
+    <script>
+        class BullsAndCows {
+            constructor(numImages) {
+                this.numImages = numImages;
+                this.secretCode = [];
+                this.currentGuess = [];
+                this.history = [];
+                this.generateSecretCode();
+            }
+
+            generateSecretCode() {
+                // Create array of available numbers based on numImages
+                const numbers = Array.from({length: this.numImages}, (_, i) => i + 1);
+                // Shuffle only the available numbers
+                for (let i = numbers.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [numbers[i], numbers[j]] = [numbers[j], numbers[i]];
+                }
+                this.secretCode = numbers.slice(0, numGuessSlots);
+                console.log('Secret code:', this.secretCode); // For debugging
+            }
+
+            checkGuess(guess) {
+                let bulls = 0;
+                let cows = 0;
+                
+                for (let i = 0; i < guess.length; i++) {
+                    if (guess[i] === this.secretCode[i]) {
+                        bulls++;
+                    } else if (this.secretCode.includes(guess[i])) {
+                        cows++;
+                    }
+                }
+                
+                return { bulls, cows };
+            }
+
+            isWin(bulls) {
+                return bulls === numGuessSlots;
+            }
+        }
+
+        let game;
+        const imageCandidates = document.getElementById('imageCandidates');
+        const guessContainer = document.getElementById('guessContainer');
+        const submitGuessButton = document.getElementById('submitGuess');
+        const newGameButton = document.getElementById('newGame');
+        const resultDiv = document.getElementById('result');
+        const historyDiv = document.getElementById('history');
+        const numImagesSelect = document.getElementById('numImages');
+        const numGuessSlotsSelect = document.getElementById('numGuessSlots');
+        let numGuessSlots = parseInt(numGuessSlotsSelect.value);
+
+        function createImageElement(number) {
+            const img = document.createElement('img');
+            img.src = `images/${number}.png`;
+            img.dataset.number = number;
+            img.draggable = true;
+            img.addEventListener('dragstart', (e) => {
+                e.dataTransfer.setData('number', number);
+            });
+            return img;
+        }
+
+        function updateImageCandidates() {
+            imageCandidates.innerHTML = '';
+            const numImages = parseInt(numImagesSelect.value);
+            
+            for (let i = 1; i <= numImages; i++) {
+                const img = createImageElement(i);
+                img.addEventListener('click', () => handleImageClick(i));
+                imageCandidates.appendChild(img);
+            }
+        }
+
+        function updateGuessSlots() {
+            guessContainer.innerHTML = '';
+            const numImages = parseInt(numImagesSelect.value);
+            
+            for (let i = 0; i < numGuessSlots; i++) {
+                const slot = document.createElement('div');
+                slot.className = 'guess-slot empty';
+                slot.dataset.index = i;
+                slot.addEventListener('dragover', (e) => {
+                    e.preventDefault();
+                });
+                slot.addEventListener('drop', (e) => {
+                    e.preventDefault();
+                    const number = parseInt(e.dataTransfer.getData('number'));
+                    if (!game.currentGuess.includes(number)) {
+                        handleImageClick(number, parseInt(e.currentTarget.dataset.index));
+                    }
+                });
+                slot.addEventListener('click', (e) => {
+                    if (e.currentTarget.children.length > 0) {
+                        const img = e.currentTarget.children[0];
+                        const number = parseInt(img.dataset.number);
+                        const index = game.currentGuess.indexOf(number);
+                        if (index > -1) {
+                            game.currentGuess.splice(index, 1);
+                            img.remove();
+                            e.currentTarget.className = 'guess-slot empty';
+                            submitGuessButton.disabled = true;
+                        }
+                    }
+                });
+                guessContainer.appendChild(slot);
+            }
+        }
+
+        function handleImageClick(number, targetIndex = null) {
+            if (game.currentGuess.includes(number)) {
+                return; // Prevent duplicate selections
+            }
+
+            let targetSlot;
+            if (targetIndex !== null) {
+                targetSlot = Array.from(guessContainer.children)[targetIndex];
+                if (targetSlot && targetSlot.children.length > 0) {
+                    return; // Slot is not empty
+                }
+            } else {
+                targetSlot = Array.from(guessContainer.children)
+                    .find(slot => !slot.hasChildNodes());
+            }
+            
+            if (targetSlot) {
+                const img = createImageElement(number);
+                targetSlot.appendChild(img);
+                targetSlot.className = 'guess-slot';  // Remove empty class
+                game.currentGuess.push(number);
+                
+                if (game.currentGuess.length === numGuessSlots) {
+                    submitGuessButton.disabled = false;
+                }
+            }
+        }
+
+        function addToHistory(guess, bulls, cows) {
+            const historyItem = document.createElement('div');
+            historyItem.className = 'history-item';
+            
+            const imagesDiv = document.createElement('div');
+            imagesDiv.className = 'history-images';
+            guess.forEach(number => {
+                const img = createImageElement(number);
+                imagesDiv.appendChild(img);
+            });
+            
+            const result = document.createElement('div');
+            result.className = 'history-result';
+            result.textContent = `${bulls}A${cows}B`;
+            
+            historyItem.appendChild(imagesDiv);
+            historyItem.appendChild(result);
+            
+            historyDiv.insertBefore(historyItem, historyDiv.firstChild.nextSibling);
+        }
+
+        function createFireworks() {
+            const container = document.createElement('div');
+            container.style.position = 'fixed';
+            container.style.top = '0';
+            container.style.left = '0';
+            container.style.width = '100%';
+            container.style.height = '100%';
+            container.style.pointerEvents = 'none';
+            container.style.zIndex = '1000';
+            
+            // Add a semi-transparent overlay
+            const overlay = document.createElement('div');
+            overlay.className = 'win-overlay';
+            container.appendChild(overlay);
+            
+            // Create multiple fireworks
+            for (let i = 0; i < 10; i++) {
+                const firework = document.createElement('div');
+                firework.className = 'firework';
+                container.appendChild(firework);
+                
+                // Create additional delayed fireworks
+                setTimeout(() => {
+                    const delayedFirework = document.createElement('div');
+                    delayedFirework.className = 'firework';
+                    delayedFirework.style.left = Math.random() * 80 + 10 + '%';
+                    delayedFirework.style.top = Math.random() * 80 + 10 + '%';
+                    container.appendChild(delayedFirework);
+                }, i * 200);
+            }
+            
+            document.body.appendChild(container);
+            
+            // Remove the fireworks after animation
+            setTimeout(() => {
+                container.remove();
+            }, 3000);
+        }
+
+        function startNewGame() {
+            const numImages = parseInt(numImagesSelect.value);
+            numGuessSlots = parseInt(numGuessSlotsSelect.value);
+            game = new BullsAndCows(numImages);
+            game.currentGuess = [];
+            updateGuessSlots();
+            submitGuessButton.disabled = true;
+            resultDiv.textContent = '';
+            historyDiv.innerHTML = '<h2>History</h2>';
+            updateImageCandidates();
+        }
+
+        function submitGuess() {
+            if (submitGuessButton.disabled) {
+                return;
+            }
+            
+            const { bulls, cows } = game.checkGuess(game.currentGuess);
+            addToHistory(game.currentGuess, bulls, cows);
+            
+            if (game.isWin(bulls)) {
+                resultDiv.textContent = 'Congratulations! You won!';
+                createFireworks();
+            }
+            
+            // Reset current guess
+            game.currentGuess = [];
+            Array.from(guessContainer.children).forEach(slot => {
+                slot.innerHTML = '';
+                slot.className = 'guess-slot empty';
+            });
+            submitGuessButton.disabled = true;
+        }
+
+        // Add keyboard support
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                submitGuess();
+            }
+        });
+
+        submitGuessButton.addEventListener('click', submitGuess);
+
+        newGameButton.addEventListener('click', () => {
+            startNewGame();  // Explicitly call startNewGame
+        });
+
+        numImagesSelect.addEventListener('change', startNewGame);
+        numGuessSlotsSelect.addEventListener('change', startNewGame);
+
+        // Start first game
+        startNewGame();
+    </script>
+</body>
+</html>
