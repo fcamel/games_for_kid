@@ -2,6 +2,8 @@
 
 A fun and interactive math game where players solve math expressions to clear falling rectangles. Play alone or challenge a friend in multiplayer mode!
 
+You have to prepare images/0.png ~ images/8.png to make the game work.
+
 ## Features
 
 ### Game Modes

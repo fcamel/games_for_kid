@@ -146,7 +146,7 @@
     <div id="status">Select game mode...</div>
     <div id="score">Score: 0</div>
     <div class="game-container">
-        <canvas id="gameCanvas" width="400" height="800"></canvas>
+        <canvas id="gameCanvas" width="600" height="800"></canvas>
         <div class="numpad-container">
             <div class="numpad-display" id="input">0</div>
             <div class="numpad">
@@ -199,6 +199,16 @@
         const modeSelect = document.getElementById('modeSelect');
         const targetRectBorder = 5;
         const bossLives = 3;
+
+        // Load life images
+        const lifeImages = [];
+        for (let i = 1; i <= 8; i++) {
+            const img = new Image();
+            img.src = `images/${i}.png`;
+            lifeImages.push(img);
+        }
+        const bossImage = new Image();
+        bossImage.src = 'images/0.png';
 
         let score = 0;
         let gameOver = false;
@@ -320,7 +330,6 @@
         class Rectangle {
             constructor(isFromServer = false) {
                 rectangleCount++;  // Increment counter for each new rectangle
-                this.speed = baseSpeed;
                 this.isFromServer = isFromServer;
                 this.isBoss = rectangleCount % bossFrequency === 0;  // Every Nth rectangle is a boss
                 this.lives = this.isBoss ? bossLives : 1;
@@ -336,6 +345,14 @@
                 this.x = Math.random() * (canvas.width - this.width);
                 this.y = 0;
                 this.generateExpression(this.isSpecial);
+                
+                // Image selection
+                if (this.isBoss) {
+                    this.imageIndex = -1;  // Special index for boss image
+                } else {
+                    // Randomly select one image index for the rectangle
+                    this.imageIndex = Math.floor(Math.random() * lifeImages.length);
+                }
             }
 
             generateExpression(isSpecial) {
@@ -362,7 +379,7 @@
             }
 
             update() {
-                this.y += this.speed;
+                this.y += baseSpeed;
                 if (this.y > canvas.height) {
                     gameOver = true;
                     return false;
@@ -401,70 +418,97 @@
                 ctx.textBaseline = 'middle';
                 ctx.fillText(this.expression, this.x + this.width/2, this.y + this.height/2);
 
-                // Draw life indicators for boss
-                if (this.isBoss) {
-                    const heartSize = 12;
-                    const heartSpacing = 16;
-                    const startX = this.x + this.width/2 - ((this.lives * heartSpacing) - heartSpacing)/2;
-
-                    for (let i = 0; i < this.lives; i++) {
-                        const heartX = startX + i * heartSpacing;
-                        const heartY = this.y - heartSize - 2;
-
-                        // Draw heart shape
-                        ctx.fillStyle = '#ff69b4';  // Hot pink
-                        ctx.beginPath();
-                        ctx.moveTo(heartX, heartY + heartSize/4);
-                        ctx.bezierCurveTo(
-                            heartX, heartY,
-                            heartX - heartSize/2, heartY,
-                            heartX - heartSize/2, heartY + heartSize/4
-                        );
-                        ctx.bezierCurveTo(
-                            heartX - heartSize/2, heartY + heartSize/2,
-                            heartX, heartY + heartSize * 3/4,
-                            heartX, heartY + heartSize
-                        );
-                        ctx.bezierCurveTo(
-                            heartX, heartY + heartSize * 3/4,
-                            heartX + heartSize/2, heartY + heartSize/2,
-                            heartX + heartSize/2, heartY + heartSize/4
-                        );
-                        ctx.bezierCurveTo(
-                            heartX + heartSize/2, heartY,
-                            heartX, heartY,
-                            heartX, heartY + heartSize/4
-                        );
-                        ctx.fill();
-                    }
+                // Draw image
+                const imageSize = 100;
+                const imageX = this.x + (this.width - imageSize) / 2;
+                const imageY = this.y + this.height + 10;  // 10px below the rectangle
+                
+                // Calculate line start and end points
+                const imageCenterX = imageX + imageSize / 2;
+                const imageCenterY = imageY + imageSize / 2;
+                
+                // Draw two connecting lines
+                ctx.beginPath();
+                ctx.strokeStyle = '#666';  // Gray color for the lines
+                ctx.lineWidth = 2;
+                
+                // Left line
+                const leftStartX = this.x + this.width * 0.25;  // 25% from left edge
+                ctx.moveTo(leftStartX, this.y + this.height);
+                ctx.lineTo(imageCenterX, imageY);
+                
+                // Right line
+                const rightStartX = this.x + this.width * 0.75;  // 75% from left edge
+                ctx.moveTo(rightStartX, this.y + this.height);
+                ctx.lineTo(imageCenterX, imageY);
+                
+                ctx.stroke();
+                
+                // Draw the image
+                const img = this.isBoss ? bossImage : lifeImages[this.imageIndex];
+                if (img.complete) {  // Only draw if image is loaded
+                    ctx.drawImage(img, imageX, imageY, imageSize, imageSize);
                 }
             }
         }
 
         class Explosion {
-            constructor(x, y) {
+            constructor(x, y, imageIndex) {  // Add imageIndex parameter
                 this.x = x;
                 this.y = y;
                 this.radius = 0;
                 this.maxRadius = 50;
-                this.speed = 2;
                 this.alpha = 1;
+                
+                // Animation parameters
+                this.jumpHeight = -8;    // Reduced initial upward velocity
+                this.gravity = 0.6;         // Reduced gravity effect
+                this.horizontalSpeed = 3;  // Reduced horizontal speed
+                this.direction = this.x < canvas.width / 2 ? 1 : -1;  // Move right if on left side, left if on right side
+                
+                // Image parameters
+                this.imageSize = 100;
+                this.imageIndex = imageIndex;  // Use the passed image index
             }
 
             draw() {
+                // Draw explosion circle effect
                 ctx.beginPath();
+                ctx.fillStyle = `rgba(255, 165, 0, ${this.alpha * 0.5})`;  // Orange with fade
                 ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
-                ctx.fillStyle = `rgba(255, 165, 0, ${this.alpha})`;  // Orange with fading alpha
                 ctx.fill();
-                ctx.strokeStyle = `rgba(255, 69, 0, ${this.alpha})`;  // Red-orange border
-                ctx.lineWidth = 2;
-                ctx.stroke();
+
+                // Draw the falling image
+                const img = this.imageIndex === -1 ? bossImage : lifeImages[this.imageIndex];
+                if (img.complete) {
+                    ctx.save();  // Save current context state
+                    ctx.translate(this.x, this.y);  // Move to image center
+                    ctx.globalAlpha = this.alpha;   // Apply fade
+                    // Draw image centered at current position
+                    ctx.drawImage(img, 
+                        -this.imageSize/2, 
+                        -this.imageSize/2, 
+                        this.imageSize, 
+                        this.imageSize
+                    );
+                    ctx.restore();  // Restore context state
+                }
             }
 
             update() {
-                this.radius += this.speed;
+                // Update explosion circle
+                this.radius += baseSpeed * 3;  // Slightly faster explosion
                 this.alpha = Math.max(0, 1 - this.radius / this.maxRadius);
-                return this.radius <= this.maxRadius;  // Return true if explosion should continue
+
+                // Update position
+                this.jumpHeight += this.gravity;  // Apply gravity
+                this.y += this.jumpHeight;        // Update vertical position
+                this.x += this.horizontalSpeed * this.direction;  // Update horizontal position
+
+                // Continue animation until explosion fades out or moves off screen
+                return this.alpha > 0 && 
+                       this.x > -this.imageSize && 
+                       this.x < canvas.width + this.imageSize;
             }
         }
 
@@ -757,52 +801,60 @@
                 firingLasers.push(laser);
 
                 if (isCorrect) {
-                    // Store rectangles to be removed but don't remove them yet
-                    const rectsToRemove = [lowestRect];
-
-                    // For special rectangles, find all rectangles below the target line
-                    // Exclude boss rectangles from being removed
-                    if (lowestRect.isSpecial) {
-                        const targetY = lowestRect.y - lowestRect.height;
-                        rectangles.forEach(rect => {
-                            if (rect !== lowestRect && !rect.isBoss && rect.y + rect.height > targetY) {
-                                rectsToRemove.push(rect);
-                            }
-                        });
-                    }
-
                     // Create an interval to check for laser hit
                     const laserCheckInterval = setInterval(() => {
                         if (laser.reachedTarget && !laser.hasTriggeredEffect) {
                             laser.hasTriggeredEffect = true;
                             clearInterval(laserCheckInterval);
 
-                            if (lowestRect.isBoss) {
-                                // Reduce boss life and generate new expression after laser hit
-                                lowestRect.lives--;
-                                if (lowestRect.lives > 0) {
-                                    lowestRect.generateExpression(false);
-                                    return;
+                            // Decrement lives for the lowest rectangle
+                            lowestRect.lives = lowestRect.lives || 1;  // Ensure lives exists
+                            lowestRect.lives--;
+
+                            // Handle boss rectangles separately
+                            if (lowestRect.isBoss && lowestRect.lives > 0) {
+                                lowestRect.generateExpression(false);
+                                return;
+                            }
+
+                            // Collect rectangles to process when lives reach 0
+                            const rectsToProcess = [];
+                            if (lowestRect.lives <= 0) {
+                                rectsToProcess.push(lowestRect);
+
+                                // For special rectangles, find all affected rectangles
+                                if (lowestRect.isSpecial) {
+                                    const targetY = lowestRect.y - lowestRect.height;
+                                    rectangles.forEach(rect => {
+                                        if (rect !== lowestRect && !rect.isBoss && rect.y + rect.height > targetY) {
+                                            rect.lives = rect.lives || 1;
+                                            rect.lives--;
+                                            rectsToProcess.push(rect);
+                                        }
+                                    });
+
+                                    // Create laser beam for special effect
+                                    laserBeams.push(new LaserBeam(targetY, lowestRect.height * 2));
                                 }
                             }
 
-                            if (!lowestRect.isBoss || lowestRect.lives === 0) {
-                                // Remove rectangles
-                                rectangles = rectangles.filter(rect => !rectsToRemove.includes(rect));
-
-                                // Create laser beam for special rectangle
-                                if (lowestRect.isSpecial) {
-                                    const targetY = lowestRect.y - lowestRect.height;
-                                    laserBeams.push(new LaserBeam(targetY, lowestRect.height * 2));
-                                }
-
-                                // Create explosions for all removed rectangles
-                                rectsToRemove.forEach(rect => {
+                            // Process rectangles with zero lives
+                            const rectsToRemove = [];
+                            rectsToProcess.forEach(rect => {
+                                if (rect.lives <= 0) {
+                                    rectsToRemove.push(rect);
+                                    // Pass the image index when creating explosion
                                     explosions.push(new Explosion(
                                         rect.x + rect.width / 2,
-                                        rect.y + rect.height / 2
+                                        rect.y + rect.height / 2,
+                                        rect.imageIndex  // Use the first image index
                                     ));
-                                });
+                                }
+                            });
+
+                            // Remove rectangles with zero lives
+                            if (rectsToRemove.length > 0) {
+                                rectangles = rectangles.filter(rect => !rectsToRemove.includes(rect));
 
                                 // Update score
                                 const baseScore = lowestRect.isBoss ? 3 : (lowestRect.isSpecial ? 2 : 1);
