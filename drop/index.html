@@ -210,6 +210,12 @@
         const bossImage = new Image();
         bossImage.src = 'images/0.png';
 
+        // Multiplayer variables
+        let ws = null;
+        let gameMode = 'single';
+        let clientId = Math.random().toString(36).substring(7);
+        let playerNumber = 0;
+
         let score = 0;
         let gameOver = false;
         let rectangles = [];
@@ -221,9 +227,9 @@
         let specialFrequency = 0.15;
         let bossFrequency = 10;  // Every N rectangles
         let rectangleCount = 0;  // Track total rectangles for boss spawning
-        let gameMode = null;
         const spawnInterval = 3000;
         const windowPadding = 20; // Padding from top of window
+        let gameLoopStarted = false;
 
         function addRectangle(isFromServer) {
             const rect = new Rectangle(isFromServer);
@@ -247,6 +253,11 @@
         }
 
         function startGame(mode) {
+            if (ws) {
+                ws.close();
+                ws = null;
+            }
+            
             gameMode = mode;
             modeSelect.style.display = 'none';
             gameOver = false;
@@ -256,23 +267,30 @@
             laserBeams = [];
             firingLasers = [];
             lastSpawnTime = 0;
+            gameLoopStarted = false;
             scoreElement.textContent = 'Score: 0';
             statusElement.textContent = gameMode === 'multi' ? 'Connecting...' : 'Playing';
 
             if (gameMode === 'multi') {
                 connectWebSocket();
+            } else {
+                // Start game loop immediately for single player
+                gameLoopStarted = true;
+                requestAnimationFrame(gameLoop);
             }
-            requestAnimationFrame(gameLoop);
         }
 
         // Connect to WebSocket server
         function connectWebSocket() {
             if (gameMode !== 'multi') return;
 
-            ws = new WebSocket(`ws://${window.location.hostname}:8000/ws/${clientId}`);
+            // Get the server's IP address or hostname from the window location
+            const serverHost = window.location.hostname === 'localhost' ? 'localhost' : window.location.hostname;
+            ws = new WebSocket(`ws://${serverHost}:8000/ws/${clientId}`);
 
             ws.onmessage = function(event) {
                 const data = JSON.parse(event.data);
+                console.log('Received message:', data);  // Debug log
 
                 switch(data.type) {
                     case "waiting":
@@ -282,7 +300,14 @@
                     case "game_start":
                         playerNumber = data.player_number;
                         statusElement.textContent = `You are Player ${playerNumber}`;
-                        gameLoop();
+                        // Add initial rectangles and start the game loop
+                        for (let i = 0; i < 3; i++) {
+                            addRectangle(false);
+                        }
+                        if (!gameLoopStarted) {
+                            gameLoopStarted = true;
+                            requestAnimationFrame(gameLoop);
+                        }
                         break;
 
                     case "add_rectangles":
@@ -305,10 +330,16 @@
             };
 
             ws.onclose = function() {
-                if (gameMode === 'multi') {
-                    statusElement.textContent = "Disconnected from server. Reconnecting...";
-                    setTimeout(connectWebSocket, 3000);
+                if (!gameOver) {
+                    statusElement.textContent = "Connection lost. Please restart the game.";
+                    gameOver = true;
                 }
+            };
+
+            ws.onerror = function(error) {
+                console.error('WebSocket error:', error);
+                statusElement.textContent = "Connection error. Please restart the game.";
+                gameOver = true;
             };
         }
 
@@ -843,11 +874,10 @@
                             rectsToProcess.forEach(rect => {
                                 if (rect.lives <= 0) {
                                     rectsToRemove.push(rect);
-                                    // Pass the image index when creating explosion
                                     explosions.push(new Explosion(
                                         rect.x + rect.width / 2,
                                         rect.y + rect.height / 2,
-                                        rect.imageIndex  // Use the first image index
+                                        rect.imageIndex
                                     ));
                                 }
                             });
@@ -862,12 +892,24 @@
                                 score += rectsToRemove.length - 1;
                                 scoreElement.textContent = `Score: ${score}`;
 
-                                if (gameMode === 'multi') {
+                                // Send update to opponent in multiplayer mode
+                                if (gameMode === 'multi' && ws && ws.readyState === WebSocket.OPEN) {
                                     ws.send(JSON.stringify({
-                                        type: 'score',
-                                        score: score
+                                        type: 'rectangle_cleared',
+                                        combo_count: rectsToRemove.length
                                     }));
                                 }
+                            }
+
+                            // Check for game over in multiplayer mode
+                            if (gameMode === 'multi' && rectangles.length === 0) {
+                                if (ws && ws.readyState === WebSocket.OPEN) {
+                                    ws.send(JSON.stringify({
+                                        type: 'game_over'
+                                    }));
+                                }
+                                statusElement.textContent = "You Win! Cleared all rectangles!";
+                                gameOver = true;
                             }
                         }
                     }, 16);
