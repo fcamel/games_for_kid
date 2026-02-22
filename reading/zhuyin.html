@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>國語注音標示工具</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: "Microsoft JhengHei", "PingFang TC", "Noto Sans TC", sans-serif;
+    background: #fdf6e3;
+    padding: 20px;
+    max-width: 900px;
+    margin: 0 auto;
+  }
+  h1 { text-align: center; color: #333; margin-bottom: 16px; font-size: 1.6em; }
+  .input-area {
+    margin-bottom: 16px;
+  }
+  textarea {
+    width: 100%;
+    height: 120px;
+    font-size: 18px;
+    padding: 12px;
+    border: 2px solid #ccc;
+    border-radius: 8px;
+    resize: vertical;
+  }
+  .btn-row { text-align: center; margin-bottom: 20px; }
+  button {
+    font-size: 18px;
+    padding: 10px 32px;
+    border: none;
+    border-radius: 8px;
+    background: #4a90d9;
+    color: #fff;
+    cursor: pointer;
+    margin: 0 6px;
+  }
+  button:hover { background: #357abd; }
+  button.secondary { background: #999; }
+  button.secondary:hover { background: #777; }
+  #output {
+    background: #fff;
+    border: 2px solid #e0d8c8;
+    border-radius: 8px;
+    padding: 24px 20px;
+    min-height: 100px;
+    font-size: 28px;
+  }
+  .char-block {
+    display: inline-flex;
+    flex-direction: row;
+    align-items: flex-end;
+  }
+  .char-block .hanzi {
+    font-size: 1em;
+    line-height: 1;
+  }
+  .char-block .zhuyin-area {
+    display: flex;
+    flex-direction: row;
+    align-items: flex-end;
+    font-size: 0.35em;
+    color: #c0392b;
+    margin-left: 1px;
+    height: 4.6em;
+  }
+  .char-block .zhuyin-symbols {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-end;
+    line-height: 1.15;
+    width: 1em;
+  }
+  .char-block .tone-mark {
+    display: flex;
+    align-items: flex-start;
+    width: 0.7em;
+    font-size: 0.9em;
+    padding-top: 0.1em;
+  }
+  .punct {
+    display: inline-flex;
+    align-items: flex-end;
+    font-size: 1em;
+  }
+  .output-line {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: 0 2px;
+    min-height: 2.6em;
+  }
+  .note {
+    margin-top: 12px;
+    color: #888;
+    font-size: 13px;
+    text-align: center;
+  }
+  .size-ctrl { text-align: center; margin-bottom: 12px; }
+  .size-ctrl label { font-size: 14px; color: #555; margin-right: 8px; }
+  .size-ctrl input[type=range] { vertical-align: middle; }
+</style>
+</head>
+<body>
+<h1>國語注音標示工具</h1>
+<div class="input-area">
+  <textarea id="inputText" placeholder="在這裡貼上或輸入中文文字...">小明今天早上去學校上課，老師教大家寫國字。</textarea>
+</div>
+<div class="btn-row">
+  <button onclick="convert()">標注音</button>
+  <button class="secondary" onclick="clearAll()">清除</button>
+</div>
+<div class="size-ctrl">
+  <label>字體大小：</label>
+  <input type="range" id="fontSize" min="20" max="60" value="28" oninput="changeFontSize(this.value)">
+  <span id="fontSizeLabel">28px</span>
+</div>
+<div id="output"></div>
+<p class="note">注音資料透過 pinyin-pro 產生後轉換，部分多音字可能需要人工校正。</p>
+
+<script src="https://cdn.jsdelivr.net/npm/pinyin-pro@3/dist/index.js"></script>
+<script>
+// Pinyin syllable to Zhuyin mapping
+const PINYIN_TO_ZHUYIN = {
+  // Initials
+  'b':'ㄅ','p':'ㄆ','m':'ㄇ','f':'ㄈ',
+  'd':'ㄉ','t':'ㄊ','n':'ㄋ','l':'ㄌ',
+  'g':'ㄍ','k':'ㄎ','h':'ㄏ',
+  'j':'ㄐ','q':'ㄑ','x':'ㄒ',
+  'zh':'ㄓ','ch':'ㄔ','sh':'ㄕ','r':'ㄖ',
+  'z':'ㄗ','c':'ㄘ','s':'ㄙ',
+};
+
+const FINAL_TO_ZHUYIN = {
+  'a':'ㄚ','o':'ㄛ','e':'ㄜ','i':'ㄧ','u':'ㄨ','v':'ㄩ','ü':'ㄩ',
+  'ai':'ㄞ','ei':'ㄟ','ao':'ㄠ','ou':'ㄡ',
+  'an':'ㄢ','en':'ㄣ','ang':'ㄤ','eng':'ㄥ','er':'ㄦ',
+  'ia':'ㄧㄚ','ie':'ㄧㄝ','iao':'ㄧㄠ','iu':'ㄧㄡ','iou':'ㄧㄡ',
+  'ian':'ㄧㄢ','in':'ㄧㄣ','iang':'ㄧㄤ','ing':'ㄧㄥ',
+  'ua':'ㄨㄚ','uo':'ㄨㄛ','uai':'ㄨㄞ','ui':'ㄨㄟ','uei':'ㄨㄟ',
+  'uan':'ㄨㄢ','un':'ㄨㄣ','uen':'ㄨㄣ','uang':'ㄨㄤ','ong':'ㄨㄥ','ueng':'ㄨㄥ',
+  've':'ㄩㄝ','üe':'ㄩㄝ','ue':'ㄩㄝ',
+  'van':'ㄩㄢ','üan':'ㄩㄢ','vn':'ㄩㄣ','ün':'ㄩㄣ',
+  'iong':'ㄩㄥ',
+};
+
+const TONE_MARKS = {'ˉ':'', 'ˊ':'ˊ', 'ˇ':'ˇ', 'ˋ':'ˋ', '˙':'˙'};
+const TONE_NUM = {'1':'ˉ','2':'ˊ','3':'ˇ','4':'ˋ','5':'˙','0':'˙'};
+
+function pinyinToZhuyin(pinyinWithTone) {
+  if (!pinyinWithTone) return '';
+  let py = pinyinWithTone.trim().toLowerCase();
+  if (!py) return '';
+
+  // Extract tone number (last char if digit)
+  let tone = '';
+  let toneNum = '1';
+  if (/[0-5]$/.test(py)) {
+    toneNum = py.slice(-1);
+    py = py.slice(0, -1);
+  }
+  tone = TONE_NUM[toneNum] || '';
+  // First tone is unmarked in zhuyin
+  if (tone === 'ˉ') tone = '';
+  // Light tone (˙) goes before the zhuyin
+  let prefix = '';
+  if (tone === '˙') { prefix = '˙'; tone = ''; }
+
+  // Special standalone syllables
+  if (py === 'zhi') return prefix + 'ㄓ' + tone;
+  if (py === 'chi') return prefix + 'ㄔ' + tone;
+  if (py === 'shi') return prefix + 'ㄕ' + tone;
+  if (py === 'ri')  return prefix + 'ㄖ' + tone;
+  if (py === 'zi')  return prefix + 'ㄗ' + tone;
+  if (py === 'ci')  return prefix + 'ㄘ' + tone;
+  if (py === 'si')  return prefix + 'ㄙ' + tone;
+  if (py === 'yu')  return prefix + 'ㄩ' + tone;
+  if (py === 'wu')  return prefix + 'ㄨ' + tone;
+  if (py === 'yi')  return prefix + 'ㄧ' + tone;
+  if (py === 'ye')  return prefix + 'ㄧㄝ' + tone;
+  if (py === 'yue') return prefix + 'ㄩㄝ' + tone;
+  if (py === 'yuan') return prefix + 'ㄩㄢ' + tone;
+  if (py === 'yun') return prefix + 'ㄩㄣ' + tone;
+  if (py === 'yong') return prefix + 'ㄩㄥ' + tone;
+
+  // Handle y- initials: convert to i/ü based finals
+  if (py.startsWith('y')) {
+    let rest = py.slice(1);
+    if (rest.startsWith('u')) rest = 'v' + rest.slice(1); // yu -> v
+    else if (!rest.startsWith('i')) rest = 'i' + rest;
+    let zy = FINAL_TO_ZHUYIN[rest];
+    if (zy) return prefix + zy + tone;
+  }
+  // Handle w- initials
+  if (py.startsWith('w')) {
+    let rest = py.slice(1);
+    if (!rest.startsWith('u')) rest = 'u' + rest;
+    let zy = FINAL_TO_ZHUYIN[rest];
+    if (zy) return prefix + zy + tone;
+  }
+
+  // Find initial
+  let initial = '';
+  let initialZy = '';
+  for (const len of [2, 1]) {
+    const candidate = py.slice(0, len);
+    if (PINYIN_TO_ZHUYIN[candidate]) {
+      initial = candidate;
+      initialZy = PINYIN_TO_ZHUYIN[candidate];
+      break;
+    }
+  }
+
+  let final_part = py.slice(initial.length);
+  if (!final_part && initialZy) return prefix + initialZy + tone;
+
+  // j/q/x + u -> ü
+  if ('jqx'.includes(initial) && final_part.startsWith('u')) {
+    final_part = 'v' + final_part.slice(1);
+  }
+
+  let finalZy = FINAL_TO_ZHUYIN[final_part] || '';
+  if (!finalZy && final_part) {
+    // Try without trailing consonant quirks
+    finalZy = final_part.split('').map(c => {
+      return {'a':'ㄚ','o':'ㄛ','e':'ㄜ','i':'ㄧ','u':'ㄨ','v':'ㄩ','ü':'ㄩ','n':'ㄣ','g':'ㄥ'}[c] || c;
+    }).join('');
+  }
+
+  return prefix + initialZy + finalZy + tone;
+}
+
+function isChinese(ch) {
+  const code = ch.charCodeAt(0);
+  return (code >= 0x4E00 && code <= 0x9FFF) ||
+         (code >= 0x3400 && code <= 0x4DBF) ||
+         (code >= 0x20000 && code <= 0x2A6DF);
+}
+
+function splitZhuyin(zy) {
+  // Split zhuyin string into: tone prefix (˙), symbols, tone suffix (ˊˇˋ)
+  let tonePrefix = '';
+  let toneSuffix = '';
+  let symbols = zy;
+  if (symbols.startsWith('˙')) {
+    tonePrefix = '˙';
+    symbols = symbols.slice(1);
+  }
+  if (symbols.length > 0 && 'ˊˇˋ'.includes(symbols[symbols.length - 1])) {
+    toneSuffix = symbols[symbols.length - 1];
+    symbols = symbols.slice(0, -1);
+  }
+  return { tonePrefix, symbols, toneSuffix };
+}
+
+function convert() {
+  const text = document.getElementById('inputText').value.trim();
+  if (!text) return;
+
+  const pinyinPro = window.pinyinPro;
+  const pinyinArr = pinyinPro.pinyin(text, { type: 'array', toneType: 'num' });
+
+  const lines = text.split('\n');
+  let html = '';
+  let charIdx = 0;
+
+  for (let li = 0; li < lines.length; li++) {
+    const line = lines[li];
+    html += '<div class="output-line">';
+    for (let i = 0; i < line.length; i++) {
+      const ch = line[i];
+      if (isChinese(ch)) {
+        const py = pinyinArr[charIdx] || '';
+        const zy = pinyinToZhuyin(py);
+        const { tonePrefix, symbols, toneSuffix } = splitZhuyin(zy);
+        const toneSide = toneSuffix || '';  // ˊˇˋ go to the right
+        const toneTop = tonePrefix || '';  // ˙ goes above
+
+        let zyHTML = '<div class="zhuyin-area">';
+        zyHTML += '<div class="zhuyin-symbols">';
+        if (toneTop) zyHTML += `<span>${toneTop}</span>`;
+        for (const s of symbols) {
+          zyHTML += `<span>${s}</span>`;
+        }
+        zyHTML += '</div>';
+        zyHTML += `<div class="tone-mark">${toneSide}</div>`;
+        zyHTML += '</div>';
+
+        html += `<span class="char-block"><span class="hanzi">${ch}</span>${zyHTML}</span>`;
+        charIdx++;
+      } else {
+        html += `<span class="punct">${ch}</span>`;
+        charIdx++;
+      }
+    }
+    html += '</div>';
+    if (li < lines.length - 1) charIdx++;  // account for '\n' in pinyinArr
+  }
+
+  document.getElementById('output').innerHTML = html;
+}
+
+function clearAll() {
+  document.getElementById('inputText').value = '';
+  document.getElementById('output').innerHTML = '';
+}
+
+function changeFontSize(val) {
+  document.getElementById('output').style.fontSize = val + 'px';
+  document.getElementById('fontSizeLabel').textContent = val + 'px';
+}
+</script>
+</body>
+</html>
