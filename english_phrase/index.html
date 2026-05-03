@@ -3,16 +3,19 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>English Phrase Whack-a-Mole</title>
+    <title>馬桶拆除工程</title>
     <style>
       :root {
         --sky: #d8f3ff;
         --grass: #73c956;
         --grass-dark: #2f7f46;
-        --soil: #8b5736;
-        --soil-dark: #51311f;
+        --toilet: #f8fbff;
+        --toilet-shade: #cfdde9;
+        --water: #79d1f4;
         --mole: #8d5b42;
         --mole-dark: #5c3828;
+        --bomb: #2c3137;
+        --flame: #ffb000;
         --sign: #fff5c6;
         --sign-border: #915f31;
         --text: #263238;
@@ -139,22 +142,22 @@
       .field {
         position: relative;
         display: grid;
-        grid-template-columns: repeat(5, minmax(92px, 1fr));
-        grid-template-rows: repeat(5, minmax(112px, 1fr));
-        gap: clamp(8px, 1.7vw, 18px);
+        grid-template-columns: repeat(3, minmax(120px, 1fr));
+        grid-template-rows: repeat(3, minmax(170px, 1fr));
+        gap: clamp(12px, 2vw, 24px);
         padding: clamp(10px, 2vw, 18px);
         border-radius: 8px;
         background:
-          radial-gradient(circle at 16% 18%, rgba(255, 255, 255, 0.35) 0 2px, transparent 3px),
-          radial-gradient(circle at 72% 28%, rgba(255, 255, 255, 0.28) 0 2px, transparent 3px),
-          linear-gradient(180deg, #8cdf62, var(--grass));
+          linear-gradient(90deg, rgba(255, 255, 255, 0.2) 1px, transparent 1px),
+          linear-gradient(180deg, #d8f7ff 0 44%, #bfefff 44% 100%);
+        background-size: 38px 38px, 100% 100%;
         border: 4px solid rgba(47, 127, 70, 0.4);
-        box-shadow: inset 0 -18px 40px rgba(47, 127, 70, 0.22);
+        box-shadow: inset 0 -18px 40px rgba(71, 126, 153, 0.22);
       }
 
       .center {
-        grid-column: 3;
-        grid-row: 3;
+        grid-column: 2;
+        grid-row: 2;
         display: grid;
         place-items: center;
         min-width: 0;
@@ -210,15 +213,35 @@
 
       .hole {
         position: absolute;
-        left: 5%;
-        right: 5%;
-        bottom: 2px;
-        height: 34%;
-        min-height: 34px;
-        border-radius: 50%;
+        z-index: 0;
+        left: 53%;
+        bottom: 4px;
+        width: min(192px, 98%);
+        height: 104px;
+        transform: translateX(-50%) rotate(-45deg);
+        transform-origin: 42% 58%;
+        border-radius: 18px 68px 34px 42px;
         background:
-          radial-gradient(ellipse at center, var(--soil-dark) 0 52%, var(--soil) 53% 100%);
-        box-shadow: inset 0 8px 10px rgba(0, 0, 0, 0.26);
+          radial-gradient(ellipse at 73% 35%, var(--water) 0 22%, #ffffff 23% 39%, transparent 40%),
+          linear-gradient(180deg, rgba(255, 255, 255, 0.96), var(--toilet-shade));
+        border: 4px solid #9ab0c3;
+        box-shadow:
+          inset 0 -12px 0 rgba(75, 96, 116, 0.12),
+          -24px 24px 0 -12px #c1d0dd,
+          0 7px 0 rgba(76, 94, 110, 0.2);
+      }
+
+      .hole::before {
+        content: "";
+        position: absolute;
+        left: -5%;
+        bottom: 42%;
+        width: 43%;
+        height: 82px;
+        border-radius: 12px 12px 18px 18px;
+        background: linear-gradient(180deg, #ffffff, var(--toilet-shade));
+        border: 4px solid #9ab0c3;
+        box-shadow: inset 0 8px 0 rgba(255, 255, 255, 0.76);
       }
 
       .mole-btn {
@@ -232,6 +255,7 @@
         display: grid;
         place-items: end center;
         padding: 0;
+        pointer-events: none;
       }
 
       .mole {
@@ -239,8 +263,22 @@
         width: min(126px, 100%);
         height: min(122px, 100%);
         min-height: 98px;
-        transform: translateY(0);
-        transition: transform 360ms ease, opacity 220ms ease;
+        opacity: 0;
+        transform: translateY(92px) scale(0.88);
+        transition: transform 300ms ease, opacity 180ms ease;
+      }
+
+      .hole-cell.visible:not(.flying) .mole {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+      }
+
+      .hole-cell.visible:not(.flying) .mole-btn {
+        pointer-events: auto;
+      }
+
+      .hole-cell.diving .mole {
+        animation: dive-to-toilet 340ms ease-in forwards;
       }
 
       .face {
@@ -291,6 +329,47 @@
         background: #3b1e1b;
       }
 
+      .bomb {
+        position: absolute;
+        z-index: 4;
+        right: 3%;
+        bottom: 31%;
+        width: 28px;
+        aspect-ratio: 1;
+        border-radius: 50%;
+        background:
+          radial-gradient(circle at 35% 28%, rgba(255, 255, 255, 0.38) 0 4px, transparent 5px),
+          var(--bomb);
+        border: 3px solid #15191d;
+        box-shadow: 0 3px 0 rgba(0, 0, 0, 0.22);
+      }
+
+      .bomb::before {
+        content: "";
+        position: absolute;
+        left: 45%;
+        bottom: 88%;
+        width: 14px;
+        height: 12px;
+        border-top: 3px solid #15191d;
+        border-right: 3px solid #15191d;
+        border-radius: 0 9px 0 0;
+        transform: rotate(-16deg);
+      }
+
+      .bomb::after {
+        content: "";
+        position: absolute;
+        left: 95%;
+        bottom: 116%;
+        width: 10px;
+        aspect-ratio: 1;
+        border-radius: 50% 50% 50% 0;
+        background: var(--flame);
+        transform: rotate(-28deg);
+        box-shadow: 0 0 8px rgba(255, 176, 0, 0.8);
+      }
+
       .sign {
         position: absolute;
         z-index: 3;
@@ -332,56 +411,39 @@
         font-size: clamp(11px, 1.3vw, 16px);
       }
 
-      .hole-cell.completed .mole {
-        transform: translateY(65%);
-        opacity: 0;
+      .hole-cell.flying .mole-btn {
         pointer-events: none;
       }
 
-      .done-sign {
-        position: absolute;
-        z-index: 2;
-        left: 50%;
-        bottom: 28%;
-        width: min(136px, 94%);
-        min-height: 52px;
-        transform: translateX(-50%);
-        display: none;
-        place-items: center;
-        padding: 8px;
-        border: 3px solid var(--sign-border);
-        border-radius: 6px;
-        background: #fff2a7;
-        font-weight: 900;
-        line-height: 1.1;
-        text-align: center;
-        box-shadow: 0 4px 0 rgba(81, 49, 31, 0.22);
+      .hole-cell.exploding .mole {
+        animation: toilet-drop 900ms cubic-bezier(0.35, 0.02, 0.28, 1) forwards;
       }
 
-      .done-sign::after {
+      .hole-cell.exploding .hole {
+        animation: toilet-destroy 900ms ease-out forwards;
+      }
+
+      .hole-cell.exploding::before {
         content: "";
         position: absolute;
+        z-index: 6;
         left: 50%;
-        bottom: -34px;
-        width: 9px;
-        height: 34px;
-        transform: translateX(-50%);
-        background: var(--sign-border);
-        z-index: -1;
-      }
-
-      .hole-cell.completed .done-sign {
-        display: grid;
+        bottom: 18%;
+        width: 28px;
+        aspect-ratio: 1;
+        border-radius: 50%;
+        background:
+          radial-gradient(circle, #ffffff 0 14%, transparent 15%),
+          radial-gradient(circle, #ffe66b 0 30%, transparent 31%),
+          radial-gradient(circle, #ff8c1a 0 52%, transparent 53%),
+          radial-gradient(circle, #d72626 0 68%, transparent 69%);
+        animation: blast 900ms ease-out forwards;
       }
 
       .hole-cell.wrong .sign {
         background: #ffd2d2;
         border-color: var(--wrong);
         animation: shake 260ms ease-in-out;
-      }
-
-      .hole-cell.correct .done-sign {
-        animation: pop 360ms ease-out;
       }
 
       .overlay {
@@ -451,6 +513,66 @@
         }
       }
 
+      @keyframes toilet-drop {
+        0% {
+          opacity: 1;
+          transform: translateY(0) rotate(0deg) scale(1);
+        }
+        58% {
+          opacity: 1;
+          transform: translateY(56px) rotate(-6deg) scale(0.94);
+        }
+        100% {
+          opacity: 0;
+          transform: translateY(86px) rotate(14deg) scale(0.62);
+        }
+      }
+
+      @keyframes dive-to-toilet {
+        0% {
+          opacity: 1;
+          transform: translateY(0) scale(1);
+        }
+        100% {
+          opacity: 0;
+          transform: translateY(92px) scale(0.82);
+        }
+      }
+
+      @keyframes toilet-destroy {
+        0% {
+          opacity: 1;
+          transform: translateX(-50%) rotate(-45deg) scale(1);
+        }
+        58% {
+          opacity: 1;
+          transform: translateX(-50%) rotate(-45deg) scale(1.04);
+        }
+        100% {
+          opacity: 0;
+          transform: translateX(-50%) rotate(-37deg) scale(0.72);
+        }
+      }
+
+      @keyframes blast {
+        0% {
+          opacity: 0;
+          transform: translateX(-50%) scale(0.2);
+        }
+        48% {
+          opacity: 0;
+          transform: translateX(-50%) scale(0.2);
+        }
+        70% {
+          opacity: 1;
+          transform: translateX(-50%) scale(3.1);
+        }
+        100% {
+          opacity: 0;
+          transform: translateX(-50%) scale(4.2);
+        }
+      }
+
       @keyframes shake {
         0%,
         100% {
@@ -461,18 +583,6 @@
         }
         75% {
           transform: translateX(calc(-50% + 6px)) rotate(2deg);
-        }
-      }
-
-      @keyframes pop {
-        0% {
-          transform: translateX(-50%) scale(0.65);
-        }
-        80% {
-          transform: translateX(-50%) scale(1.08);
-        }
-        100% {
-          transform: translateX(-50%) scale(1);
         }
       }
 
@@ -504,10 +614,21 @@
         }
 
         .field {
-          grid-template-columns: repeat(5, minmax(54px, 1fr));
-          grid-template-rows: repeat(5, minmax(82px, 1fr));
-          gap: 6px;
+          grid-template-columns: repeat(3, minmax(72px, 1fr));
+          grid-template-rows: repeat(3, minmax(124px, 1fr));
+          gap: 8px;
           padding: 8px;
+        }
+
+        .hole {
+          height: 82px;
+          width: min(132px, 100%);
+          border-width: 3px;
+        }
+
+        .hole::before {
+          height: 55px;
+          border-width: 3px;
         }
 
         .play {
@@ -546,25 +667,13 @@
           font-size: clamp(8px, 2.2vw, 11px);
         }
 
-        .done-sign {
-          min-height: 40px;
-          padding: 5px;
-          border-width: 2px;
-          font-size: clamp(10px, 2.6vw, 13px);
-        }
-
-        .done-sign::after {
-          bottom: -26px;
-          width: 6px;
-          height: 26px;
-        }
       }
     </style>
   </head>
   <body>
-    <main class="game" aria-label="英文短句打地鼠遊戲">
+    <main class="game" aria-label="英文短句馬桶拆除遊戲">
       <header class="topbar">
-        <h1 class="title">英文短句打地鼠</h1>
+        <h1 class="title">馬桶拆除工程</h1>
         <div class="mode-switch" role="group" aria-label="選擇遊戲模式">
           <button class="mode-button active" type="button" data-mode="englishToChinese">念英文找中文</button>
           <button class="mode-button" type="button" data-mode="chineseToEnglish">念中文找英文</button>
@@ -587,7 +696,7 @@
     <div class="overlay" id="overlay" role="dialog" aria-modal="true" aria-labelledby="finish-title">
       <div class="finish">
         <h2 id="finish-title">全部完成！</h2>
-        <p>20 個英文短句都答對了。</p>
+        <p>20 個短句都答對，馬桶拆除工程完成。</p>
         <button id="play-again" type="button">再玩一次</button>
       </div>
     </div>
@@ -627,7 +736,6 @@
         englishToChinese: {
           promptKey: "english",
           choiceKey: "chinese",
-          completedKey: "english",
           lang: "en-US",
           rate: 0.86,
           playLabel: "播放英文提示",
@@ -636,7 +744,6 @@
         chineseToEnglish: {
           promptKey: "chinese",
           choiceKey: "english",
-          completedKey: "chinese",
           lang: "zh-TW",
           rate: 0.88,
           playLabel: "播放中文提示",
@@ -644,13 +751,22 @@
         }
       };
       const total = phrases.length;
+      const toiletCount = 8;
+      const activeMoles = 3;
+      const diveDurationMs = 340;
       const cells = [];
       let order = [];
       let currentIndex = 0;
       let currentPhrase = null;
+      let currentOptions = [];
+      let phraseToken = 0;
       let activeMode = "englishToChinese";
       let completedIds = new Set();
       let wrongTimer = null;
+      let moleControllers = [];
+      let movementStarted = false;
+      let resolvingAnswer = false;
+      let resetToken = 0;
 
       function shuffle(items) {
         const copy = [...items];
@@ -661,24 +777,27 @@
         return copy;
       }
 
+      function randomBetween(min, max) {
+        return Math.floor(Math.random() * (max - min + 1)) + min;
+      }
+
       function getHolePosition(index) {
         const positions = [
-          [2, 1], [3, 1], [4, 1],
-          [1, 2], [2, 2], [3, 2], [4, 2], [5, 2],
-          [1, 3], [2, 3], [4, 3], [5, 3],
-          [1, 4], [2, 4], [3, 4], [4, 4], [5, 4],
-          [2, 5], [3, 5], [4, 5]
+          [1, 1], [2, 1], [3, 1],
+          [1, 2], [3, 2],
+          [1, 3], [2, 3], [3, 3]
         ];
         return positions[index];
       }
 
-      function createHole(phrase, index) {
+      function createHole(index) {
         const [column, row] = getHolePosition(index);
         const cell = document.createElement("div");
         cell.className = "hole-cell";
         cell.style.gridColumn = column;
         cell.style.gridRow = row;
-        cell.dataset.id = String(phrase.id);
+        cell.style.setProperty("--move-delay", `${index * -170}ms`);
+        cell.dataset.id = "";
 
         const hole = document.createElement("div");
         hole.className = "hole";
@@ -686,7 +805,7 @@
         const button = document.createElement("button");
         button.className = "mole-btn";
         button.type = "button";
-        button.setAttribute("aria-label", phrase.chinese);
+        button.setAttribute("aria-label", "");
 
         const mole = document.createElement("div");
         mole.className = "mole";
@@ -696,7 +815,7 @@
 
         const signText = document.createElement("span");
         signText.className = "sign-text";
-        signText.textContent = phrase.chinese;
+        signText.textContent = "";
 
         const face = document.createElement("div");
         face.className = "face";
@@ -704,17 +823,16 @@
         const nose = document.createElement("span");
         nose.className = "nose";
 
-        const doneSign = document.createElement("div");
-        doneSign.className = "done-sign";
-        doneSign.textContent = phrase.english;
+        const bomb = document.createElement("span");
+        bomb.className = "bomb";
 
         face.append(nose);
         sign.append(signText);
-        mole.append(sign, face);
+        mole.append(sign, face, bomb);
         button.append(mole);
-        cell.append(hole, button, doneSign);
+        cell.append(hole, button);
 
-        button.addEventListener("click", () => choosePhrase(phrase.id));
+        button.addEventListener("click", () => choosePhrase(Number(cell.dataset.id), cell));
         field.append(cell);
         cells.push(cell);
       }
@@ -726,6 +844,15 @@
       function getPhraseForCell(cell) {
         const id = Number(cell.dataset.id);
         return phrases.find((phrase) => phrase.id === id);
+      }
+
+      function getDisplayPhraseOptions() {
+        if (!currentPhrase) {
+          return [];
+        }
+
+        const distractors = shuffle(phrases.filter((phrase) => phrase.id !== currentPhrase.id));
+        return shuffle([currentPhrase, ...distractors.slice(0, toiletCount - 1)]);
       }
 
       function getSpeechText(phrase) {
@@ -747,10 +874,11 @@
         const mode = getActiveMode();
         cells.forEach((cell) => {
           const phrase = getPhraseForCell(cell);
+          if (!phrase) {
+            return;
+          }
           const choiceText = phrase[mode.choiceKey];
-          const completedText = phrase[mode.completedKey];
           cell.querySelector(".sign-text").textContent = choiceText;
-          cell.querySelector(".done-sign").textContent = completedText;
           cell.querySelector(".mole-btn").setAttribute("aria-label", choiceText);
         });
       }
@@ -788,12 +916,162 @@
         progress.textContent = `${completedIds.size} / ${total}`;
       }
 
-      function setCurrentPhrase() {
-        currentPhrase = order[currentIndex] || null;
-        cells.forEach((cell) => {
-          const phraseId = Number(cell.dataset.id);
-          cell.classList.toggle("target", Boolean(currentPhrase && phraseId === currentPhrase.id));
+      function stopMovementTimers() {
+        clearMoleTimers();
+      }
+
+      function startMovement() {
+        stopMovementTimers();
+        movementStarted = true;
+        field.classList.add("moving");
+        startMoleMovement();
+      }
+
+      function pickActiveCellIndexes() {
+        const answerIndex = cells.findIndex((cell) => Number(cell.dataset.id) === currentPhrase.id);
+        const otherIndexes = cells
+          .map((cell, index) => index)
+          .filter((index) => index !== answerIndex);
+        return shuffle([answerIndex, ...shuffle(otherIndexes).slice(0, activeMoles - 1)]);
+      }
+
+      function clearMoleTimers() {
+        moleControllers.forEach((controller) => {
+          window.clearTimeout(controller.timer);
+          controller.timer = null;
         });
+      }
+
+      function showMoleControllers() {
+        const occupiedIndexes = new Set(
+          moleControllers
+            .map((controller) => controller.cellIndex)
+            .filter((index) => index !== null)
+        );
+
+        cells.forEach((cell, index) => {
+          const isVisible = occupiedIndexes.has(index);
+          cell.classList.toggle("occupied", isVisible);
+          cell.classList.toggle("visible", isVisible);
+          cell.classList.remove("diving");
+        });
+      }
+
+      function startStaticMoles() {
+        clearMoleTimers();
+        moleControllers = pickActiveCellIndexes().map((cellIndex, index) => ({
+          id: index,
+          cellIndex,
+          timer: null
+        }));
+        showMoleControllers();
+      }
+
+      function getAvailableToiletIndexes(currentIndex) {
+        const occupiedIndexes = new Set(
+          moleControllers
+            .map((controller) => controller.cellIndex)
+            .filter((index) => index !== null)
+        );
+
+        return cells
+          .map((cell, index) => index)
+          .filter((index) => index !== currentIndex && !occupiedIndexes.has(index));
+      }
+
+      function chooseNextToiletIndex(currentIndex) {
+        const availableIndexes = getAvailableToiletIndexes(currentIndex);
+        if (availableIndexes.length === 0) {
+          return currentIndex;
+        }
+
+        const answerIndex = cells.findIndex((cell) => Number(cell.dataset.id) === currentPhrase.id);
+        const answerIsAvailable = availableIndexes.includes(answerIndex);
+        if (answerIsAvailable && Math.random() < 0.42) {
+          return answerIndex;
+        }
+
+        return availableIndexes[Math.floor(Math.random() * availableIndexes.length)];
+      }
+
+      function scheduleMoleMove(controller, delay) {
+        window.clearTimeout(controller.timer);
+        controller.timer = window.setTimeout(() => moveMole(controller), delay);
+      }
+
+      function scheduleMoleOut(controller, delay) {
+        window.clearTimeout(controller.timer);
+        controller.timer = window.setTimeout(() => moveMoleOut(controller), delay);
+      }
+
+      function moveMole(controller) {
+        if (!currentPhrase || resolvingAnswer || !movementStarted) {
+          return;
+        }
+
+        const token = resetToken;
+        const roundToken = phraseToken;
+        const currentCellIndex = controller.cellIndex;
+        const currentCell = cells[currentCellIndex];
+        if (!currentCell) {
+          return;
+        }
+
+        currentCell.classList.add("diving");
+        currentCell.classList.remove("visible");
+
+        window.setTimeout(() => {
+          if (token !== resetToken || roundToken !== phraseToken || !currentPhrase || resolvingAnswer || !movementStarted) {
+            return;
+          }
+
+          currentCell.classList.remove("diving", "occupied");
+          controller.cellIndex = null;
+          const hiddenDelay = randomBetween(1000, 3000);
+
+          scheduleMoleOut(controller, hiddenDelay);
+        }, diveDurationMs);
+      }
+
+      function startMoleMovement() {
+        clearMoleTimers();
+        showMoleControllers();
+        moleControllers.forEach((controller, index) => {
+          const firstDelay = 650 + index * 720 + randomBetween(0, 420);
+          scheduleMoleMove(controller, firstDelay);
+        });
+      }
+
+      function moveMoleOut(controller) {
+        if (!currentPhrase || resolvingAnswer || !movementStarted) {
+          return;
+        }
+
+        const nextIndex = chooseNextToiletIndex(controller.cellIndex);
+        controller.cellIndex = nextIndex;
+        const nextCell = cells[nextIndex];
+        nextCell.classList.remove("diving");
+        nextCell.classList.add("occupied", "visible");
+
+        const visibleDelay = randomBetween(1200, 2800) + controller.id * 260;
+        scheduleMoleMove(controller, visibleDelay);
+      }
+
+      function setCurrentPhrase() {
+        clearMoleTimers();
+        phraseToken += 1;
+        currentPhrase = order[currentIndex] || null;
+        currentOptions = getDisplayPhraseOptions();
+        cells.forEach((cell, index) => {
+          const phrase = currentOptions[index];
+          cell.dataset.id = phrase ? String(phrase.id) : "";
+          cell.classList.remove("correct", "wrong", "flying", "exploding", "target", "visible", "occupied", "diving");
+          cell.classList.toggle("target", Boolean(currentPhrase && phrase && phrase.id === currentPhrase.id));
+        });
+        updateCellText();
+        if (currentPhrase) {
+          startStaticMoles();
+        }
       }
 
       function playCurrentPhrase() {
@@ -804,13 +1082,12 @@
         speak(getSpeechText(currentPhrase));
       }
 
-      function choosePhrase(id) {
-        if (!currentPhrase) {
+      function choosePhrase(id, cell) {
+        if (!currentPhrase || resolvingAnswer) {
           return;
         }
 
-        const cell = cells.find((item) => Number(item.dataset.id) === id);
-        if (!cell || completedIds.has(id)) {
+        if (!cell || !id || !cell.classList.contains("visible") || cell.classList.contains("diving")) {
           return;
         }
 
@@ -822,26 +1099,45 @@
           return;
         }
 
+        resolvingAnswer = true;
+        const token = resetToken;
+        clearMoleTimers();
         completedIds.add(id);
-        cell.classList.remove("target", "wrong");
-        cell.classList.add("completed", "correct");
-        window.setTimeout(() => cell.classList.remove("correct"), 420);
-        currentIndex += 1;
+        cell.classList.remove("target", "wrong", "diving");
+        cell.classList.add("correct", "flying", "exploding");
         updateProgress();
 
         if (completedIds.size === total) {
-          finishGame();
+          window.setTimeout(() => {
+            if (token === resetToken) {
+              finishGame();
+            }
+          }, 900);
           return;
         }
 
-        setCurrentPhrase();
-        window.setTimeout(playCurrentPhrase, 520);
+        window.setTimeout(() => {
+          if (token !== resetToken) {
+            return;
+          }
+
+          currentIndex += 1;
+          resolvingAnswer = false;
+          setCurrentPhrase();
+          if (movementStarted) {
+            startMoleMovement();
+          }
+          window.setTimeout(playCurrentPhrase, 300);
+        }, 900);
       }
 
       function finishGame() {
         currentPhrase = null;
+        resolvingAnswer = false;
+        stopMovementTimers();
+        field.classList.remove("moving");
         playButton.classList.remove("speaking");
-        cells.forEach((cell) => cell.classList.remove("target", "wrong"));
+        cells.forEach((cell) => cell.classList.remove("target", "wrong", "flying", "exploding", "visible", "occupied", "diving"));
         if ("speechSynthesis" in window) {
           window.speechSynthesis.cancel();
           speak(getActiveMode().finishText, { lang: "zh-TW", rate: 0.88 });
@@ -854,19 +1150,27 @@
           window.speechSynthesis.cancel();
         }
 
+        resetToken += 1;
+        resolvingAnswer = false;
+        movementStarted = false;
+        field.classList.remove("moving");
+        currentOptions = [];
         completedIds = new Set();
         currentIndex = 0;
         order = shuffle(phrases);
         overlay.classList.remove("show");
         playButton.classList.remove("speaking");
         cells.forEach((cell) => {
-          cell.classList.remove("completed", "correct", "wrong", "target");
+          cell.classList.remove("correct", "wrong", "target", "flying", "exploding", "visible", "occupied", "diving");
         });
         updateProgress();
         setCurrentPhrase();
+        startMovement();
       }
 
-      phrases.forEach(createHole);
+      for (let index = 0; index < toiletCount; index += 1) {
+        createHole(index);
+      }
       updateModeButtons();
       updateCellText();
       resetGame();
