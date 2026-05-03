@@ -1,0 +1,102 @@
+[
+  {
+    "id": 1,
+    "english": "Great.",
+    "chinese": "太棒了！"
+  },
+  {
+    "id": 2,
+    "english": "Come in, please.",
+    "chinese": "請進。"
+  },
+  {
+    "id": 3,
+    "english": "Come here.",
+    "chinese": "過來。"
+  },
+  {
+    "id": 4,
+    "english": "Follow me.",
+    "chinese": "跟我來。"
+  },
+  {
+    "id": 5,
+    "english": "Look here.",
+    "chinese": "看這裡。"
+  },
+  {
+    "id": 6,
+    "english": "Listen to me.",
+    "chinese": "聽我說。"
+  },
+  {
+    "id": 7,
+    "english": "Be quiet, please.",
+    "chinese": "請安靜。"
+  },
+  {
+    "id": 8,
+    "english": "Hurry up.",
+    "chinese": "快一點。"
+  },
+  {
+    "id": 9,
+    "english": "Take out your book.",
+    "chinese": "拿出你的書。"
+  },
+  {
+    "id": 10,
+    "english": "Put away your book.",
+    "chinese": "把書收起來。"
+  },
+  {
+    "id": 11,
+    "english": "Repeat after me.",
+    "chinese": "跟我唸。"
+  },
+  {
+    "id": 12,
+    "english": "Let's read.",
+    "chinese": "我們來讀。"
+  },
+  {
+    "id": 13,
+    "english": "Let's go to _____.",
+    "chinese": "我們去_____。"
+  },
+  {
+    "id": 14,
+    "english": "Time to go home.",
+    "chinese": "該回家了。"
+  },
+  {
+    "id": 15,
+    "english": "See you.",
+    "chinese": "再見。"
+  },
+  {
+    "id": 16,
+    "english": "Bless you.",
+    "chinese": "保重。（別人打噴嚏時說）"
+  },
+  {
+    "id": 17,
+    "english": "I'm fine.",
+    "chinese": "我很好。"
+  },
+  {
+    "id": 18,
+    "english": "How are you?",
+    "chinese": "你好嗎？"
+  },
+  {
+    "id": 19,
+    "english": "Nice to meet you.",
+    "chinese": "很高興認識你。"
+  },
+  {
+    "id": 20,
+    "english": "Let me help you.",
+    "chinese": "讓我幫你。"
+  }
+]
